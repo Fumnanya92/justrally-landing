@@ -3,7 +3,7 @@
     "apps": [],
     "details": [
       {
-        "appIDs": ["KJDYAG4APM.com.elevationchurch.attendance"],
+        "appIDs": ["9Z284L63BK.com.elevationchurch.attendance"],
         "components": [
           { "/": "/join/*", "comment": "Invite links" },
           { "/": "/login-callback", "comment": "Auth callback" }
