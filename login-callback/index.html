@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Signing you in — Rally</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f; --surface: #13131a; --border: #1e1e2a;
+      --accent: #6c63ff; --text: #f0f0f5; --muted: #7c7c96;
+    }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 48px 32px;
+      max-width: 400px; width: 100%; text-align: center;
+    }
+    .logo { font-size: 28px; font-weight: 900; letter-spacing: -1px; margin-bottom: 32px; }
+    .logo span { color: var(--accent); }
+    .spinner {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      animation: spin .8s linear infinite;
+      margin: 0 auto 28px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    h1 { font-size: 20px; font-weight: 700; margin-bottom: 10px; }
+    p { color: var(--muted); font-size: 15px; line-height: 1.6; }
+    #fallback { display: none; margin-top: 28px; }
+    .btn {
+      display: block; width: 100%; background: var(--accent); color: #fff;
+      border: none; border-radius: 12px; padding: 14px;
+      font-size: 15px; font-weight: 700; cursor: pointer;
+      text-decoration: none; margin-top: 16px;
+      transition: opacity .15s;
+    }
+    .btn:hover { opacity: .85; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">Rally<span>.</span></div>
+    <div class="spinner" id="spinner"></div>
+    <h1 id="heading">Signing you in…</h1>
+    <p id="subtext">Opening Rally. This should only take a moment.</p>
+
+    <div id="fallback">
+      <p>Rally didn't open automatically. Tap below or open the app and sign in manually.</p>
+      <a href="#" class="btn" id="open-btn">Open in Rally App</a>
+      <a href="/" class="btn" style="background:transparent; border:1px solid var(--border); color:var(--text); margin-top:8px;">
+        Go to justrallyit.space
+      </a>
+    </div>
+  </div>
+
+  <script>
+    const fragment = window.location.hash; // e.g. #access_token=...&refresh_token=...
+
+    // Attempt to redirect to the custom scheme with the same fragment.
+    // supabase_flutter intercepts rally://login-callback and processes the tokens.
+    if (fragment) {
+      const appUrl = 'rally://login-callback' + fragment;
+      document.getElementById('open-btn').href = appUrl;
+      window.location.href = appUrl;
+    } else {
+      // No fragment — possibly a direct visit, not a real auth callback
+      document.getElementById('open-btn').href = 'rally://login-callback';
+    }
+
+    // After 2.5s, if the app didn't open show manual fallback
+    setTimeout(() => {
+      document.getElementById('spinner').style.display = 'none';
+      document.getElementById('heading').textContent = 'Open Rally to continue';
+      document.getElementById('subtext').textContent = 'If Rally is installed, tap the button below.';
+      document.getElementById('fallback').style.display = 'block';
+    }, 2500);
+  </script>
+</body>
+</html>

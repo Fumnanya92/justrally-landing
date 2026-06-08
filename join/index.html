@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Join Rally</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f; --surface: #13131a; --border: #1e1e2a;
+      --accent: #6c63ff; --text: #f0f0f5; --muted: #7c7c96;
+    }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 40px 32px;
+      max-width: 420px; width: 100%; text-align: center;
+    }
+    .logo { font-size: 28px; font-weight: 900; letter-spacing: -1px; margin-bottom: 32px; }
+    .logo span { color: var(--accent); }
+    h1 { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+    .subtitle { color: var(--muted); font-size: 15px; margin-bottom: 32px; line-height: 1.5; }
+    .code-box {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px 24px;
+      margin-bottom: 32px;
+    }
+    .code-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); margin-bottom: 8px; }
+    .code {
+      font-size: 32px; font-weight: 800; letter-spacing: 6px;
+      color: var(--accent); font-variant-numeric: tabular-nums;
+    }
+    .btn {
+      display: block; width: 100%;
+      background: var(--accent); color: #fff;
+      border: none; border-radius: 12px;
+      padding: 15px; font-size: 16px; font-weight: 700;
+      cursor: pointer; text-decoration: none;
+      margin-bottom: 12px;
+      transition: opacity .15s;
+    }
+    .btn:hover { opacity: .85; }
+    .btn-outline {
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border); border-radius: 12px;
+      padding: 14px; font-size: 15px; font-weight: 600;
+      cursor: pointer; text-decoration: none;
+      margin-bottom: 12px;
+      transition: border-color .15s;
+      display: block; width: 100%;
+    }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+    .divider { height: 1px; background: var(--border); margin: 24px 0; }
+    .instructions { font-size: 13px; color: var(--muted); line-height: 1.7; text-align: left; }
+    .instructions ol { padding-left: 18px; }
+    .instructions li { margin-bottom: 6px; }
+    #copied-msg { display: none; font-size: 13px; color: var(--accent); margin-top: 6px; }
+    #open-status { font-size: 13px; color: var(--muted); margin-top: 8px; min-height: 20px; }
+    .no-code { color: var(--muted); font-size: 15px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">Rally<span>.</span></div>
+
+    <div id="with-code">
+      <h1>You're invited!</h1>
+      <p class="subtitle">Someone has invited you to join their organization on Rally.</p>
+
+      <div class="code-box">
+        <div class="code-label">Invite Code</div>
+        <div class="code" id="code-display">——</div>
+      </div>
+
+      <button class="btn" id="open-app-btn" onclick="openApp()">Open in Rally App</button>
+      <div id="open-status"></div>
+
+      <button class="btn-outline" id="copy-btn" onclick="copyCode()">Copy Invite Code</button>
+      <div id="copied-msg">Copied to clipboard ✓</div>
+
+      <div class="divider"></div>
+
+      <div class="instructions">
+        <p style="font-weight:600; margin-bottom:10px; color:var(--text);">Don't have Rally yet?</p>
+        <ol>
+          <li>Download Rally from the App Store or Google Play.</li>
+          <li>Open Rally and tap <strong>Join with Code</strong>.</li>
+          <li>Enter your invite code shown above.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div id="no-code" style="display:none">
+      <p class="no-code">No invite code found in this link.<br/><br/>
+        Ask your group leader to share a new invite link or QR code.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    // Extract code from path: /join/ABCD1234 → "ABCD1234"
+    const pathParts = window.location.pathname.split('/').filter(Boolean);
+    const code = pathParts.length >= 2 ? pathParts[1].toUpperCase() : null;
+
+    if (code) {
+      document.getElementById('code-display').textContent = code;
+    } else {
+      document.getElementById('with-code').style.display = 'none';
+      document.getElementById('no-code').style.display = 'block';
+    }
+
+    function openApp() {
+      if (!code) return;
+      const status = document.getElementById('open-status');
+      status.textContent = 'Opening Rally…';
+      // Attempt custom scheme fallback (works when app is installed but
+      // Universal Links didn't intercept, e.g. when tapped from within a browser)
+      window.location.href = 'rally://join/' + code;
+      // If the app didn't open after 1.8s, show instructions
+      setTimeout(() => {
+        status.textContent = 'App not opening? Use the invite code above after installing Rally.';
+      }, 1800);
+    }
+
+    function copyCode() {
+      if (!code) return;
+      navigator.clipboard.writeText(code).then(() => {
+        document.getElementById('copied-msg').style.display = 'block';
+        setTimeout(() => {
+          document.getElementById('copied-msg').style.display = 'none';
+        }, 2500);
+      }).catch(() => {
+        // Fallback for older browsers
+        const el = document.createElement('textarea');
+        el.value = code;
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+        document.getElementById('copied-msg').style.display = 'block';
+      });
+    }
+  </script>
+</body>
+</html>

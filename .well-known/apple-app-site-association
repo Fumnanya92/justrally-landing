@@ -1,0 +1,14 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": ["YOUR_TEAM_ID.com.elevationchurch.attendance"],
+        "components": [
+          { "/": "/join/*", "comment": "Invite links" },
+          { "/": "/login-callback", "comment": "Auth callback" }
+        ]
+      }
+    ]
+  }
+}

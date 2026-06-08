@@ -1,0 +1,15 @@
+{
+  "rewrites": [
+    { "source": "/join/:code", "destination": "/join/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/.well-known/(.*)",
+      "headers": [
+        { "key": "Content-Type", "value": "application/json" },
+        { "key": "Cache-Control", "value": "public, max-age=3600" }
+      ]
+    }
+  ]
+}
+
