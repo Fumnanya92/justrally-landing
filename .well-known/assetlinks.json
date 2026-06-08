@@ -3,7 +3,7 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "com.elevationchurch.attendance",
+      "package_name": "space.justrallyit.rally",
       "sha256_cert_fingerprints": [
         "00:7A:7A:6F:EC:B4:5D:9D:BE:D7:59:55:D3:E9:27:85:6F:EA:37:8C:DC:64:35:D7:11:5B:BC:15:35:86:7F:A9"
       ]
