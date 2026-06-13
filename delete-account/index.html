@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Delete Your Rally Account</title>
+  <meta name="description" content="How to delete your Rally account and understand what data is removed or retained." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0a0a0f;
+      --surface:   #13131a;
+      --border:    #1e1e2a;
+      --accent:    #6c63ff;
+      --accent2:   #a78bfa;
+      --danger:    #ff5c5c;
+      --danger-bg: rgba(255,92,92,.1);
+      --danger-border: rgba(255,92,92,.25);
+      --text:      #f0f0f5;
+      --muted:     #7c7c96;
+      --radius:    14px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+    }
+
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 32px;
+      background: rgba(10,10,15,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; color: var(--text); text-decoration: none; }
+    .nav-logo span { color: var(--accent); }
+    .nav-back { color: var(--muted); font-size: 14px; text-decoration: none; transition: color .15s; }
+    .nav-back:hover { color: var(--text); }
+
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 64px 24px 96px;
+    }
+
+    .page-tag {
+      display: inline-block;
+      background: var(--danger-bg);
+      color: var(--danger);
+      border: 1px solid var(--danger-border);
+      border-radius: 99px;
+      padding: 5px 14px; font-size: 13px; font-weight: 500;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      font-size: clamp(32px, 6vw, 52px);
+      font-weight: 900;
+      letter-spacing: -2px;
+      line-height: 1.1;
+      margin-bottom: 16px;
+    }
+    h1 span { color: var(--accent); }
+
+    .subtitle {
+      color: #c0c0d0;
+      font-size: 16px;
+      margin-bottom: 48px;
+      max-width: 560px;
+    }
+
+    h2 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-top: 48px;
+      margin-bottom: 14px;
+      color: var(--text);
+    }
+
+    p {
+      color: #c0c0d0;
+      margin-bottom: 16px;
+      font-size: 15px;
+    }
+
+    ul {
+      color: #c0c0d0;
+      font-size: 15px;
+      padding-left: 24px;
+      margin-bottom: 16px;
+    }
+    ul li { margin-bottom: 8px; }
+
+    a { color: var(--accent2); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .steps-list {
+      list-style: none;
+      padding: 0;
+      margin-bottom: 16px;
+      counter-reset: steps;
+    }
+    .steps-list li {
+      counter-increment: steps;
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 14px 0;
+      border-bottom: 1px solid var(--border);
+      color: #c0c0d0;
+      font-size: 15px;
+    }
+    .steps-list li:last-child { border-bottom: none; }
+    .steps-list li::before {
+      content: counter(steps);
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      background: rgba(108,99,255,.15);
+      border: 1px solid rgba(108,99,255,.3);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent2);
+      margin-top: 2px;
+    }
+
+    .info-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px 28px;
+      margin-bottom: 24px;
+    }
+    .info-card.danger {
+      border-color: var(--danger-border);
+      background: var(--danger-bg);
+    }
+    .info-card h3 {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: var(--text);
+    }
+    .info-card.danger h3 { color: var(--danger); }
+    .info-card ul {
+      margin-bottom: 0;
+    }
+
+    .contact-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      margin-top: 8px;
+    }
+    .contact-box p { margin-bottom: 8px; }
+    .contact-box .email-link {
+      display: inline-block;
+      background: rgba(108,99,255,.12);
+      border: 1px solid rgba(108,99,255,.25);
+      border-radius: 8px;
+      padding: 10px 18px;
+      color: var(--accent2);
+      font-size: 15px;
+      font-weight: 600;
+      margin-top: 8px;
+      text-decoration: none;
+      transition: background .15s;
+    }
+    .contact-box .email-link:hover {
+      background: rgba(108,99,255,.2);
+      text-decoration: none;
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 48px 0;
+    }
+
+    footer {
+      text-align: center;
+      padding: 32px 24px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 13px;
+    }
+    footer a { color: var(--muted); }
+    footer a:hover { color: var(--text); }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="/" class="nav-logo">Rally<span>.</span></a>
+    <a href="/" class="nav-back">← Back to home</a>
+  </nav>
+
+  <div class="container">
+    <div class="page-tag">Account Deletion</div>
+    <h1>Delete Your <span>Rally</span> Account</h1>
+    <p class="subtitle">
+      You can permanently delete your Rally account at any time. This page explains how to do it in the app and what happens to your data.
+    </p>
+
+    <h2>How to delete your account in the app</h2>
+    <p>Account deletion is available directly inside Rally — no need to contact support.</p>
+
+    <ol class="steps-list">
+      <li>Open the <strong>Rally</strong> app on your device</li>
+      <li>Sign in to your account</li>
+      <li>Go to your <strong>Profile</strong></li>
+      <li>Open the <strong>Account</strong> section</li>
+      <li>Tap <strong>Delete Account</strong></li>
+      <li>Re-enter your password to confirm your identity</li>
+      <li>Confirm deletion — your account will be permanently removed</li>
+    </ol>
+
+    <h2>What gets deleted</h2>
+    <p>When you delete your account, the following personal data is permanently removed or anonymized:</p>
+    <div class="info-card danger">
+      <h3>Permanently deleted or anonymized</h3>
+      <ul>
+        <li>Name</li>
+        <li>Email address</li>
+        <li>Phone number</li>
+        <li>Profile photo</li>
+        <li>Push notification token</li>
+        <li>Login account (authentication credentials)</li>
+        <li>Personal profile information</li>
+      </ul>
+    </div>
+
+    <h2>What may be retained</h2>
+    <p>In limited cases, some records may be kept after account deletion:</p>
+    <div class="info-card">
+      <h3>May be retained</h3>
+      <ul>
+        <li>Anonymized attendance records where required for organizational reporting</li>
+        <li>Security, audit, or legal records where necessary</li>
+      </ul>
+    </div>
+
+    <h2>Retention period</h2>
+    <p>
+      Any retained records are kept only for as long as necessary for legal, security, or legitimate organizational record-keeping purposes.
+    </p>
+
+    <h2>Request deletion by email</h2>
+    <p>
+      If you are unable to delete your account through the app, you may submit a deletion request by emailing us directly. We will process your request promptly.
+    </p>
+    <div class="contact-box">
+      <p>Send your request to:</p>
+      <a href="mailto:Fynkotechnologies@gmail.com" class="email-link">Fynkotechnologies@gmail.com</a>
+      <p style="margin-top: 16px; font-size: 13px; color: var(--muted);">
+        Please include the email address associated with your Rally account so we can locate and remove your data.
+      </p>
+    </div>
+
+    <div class="divider"></div>
+
+    <p style="color: var(--muted); font-size: 13px;">
+      This page is provided by <strong style="color: var(--text);">Fynko Technologies</strong>, the developer of Rally.
+      For more information about how your data is handled, please review our
+      <a href="https://justrallyit.space/privacy">Privacy Policy</a>.
+    </p>
+  </div>
+
+  <footer>
+    <p>
+      © 2026 Rally &nbsp;·&nbsp; Fynko Technologies &nbsp;·&nbsp;
+      <a href="/">Home</a> &nbsp;·&nbsp;
+      <a href="https://justrallyit.space/privacy">Privacy Policy</a>
+    </p>
+  </footer>
+
+</body>
+</html>
