@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rally Support</title>
+  <meta name="description" content="Get support for Rally, including account help, attendance troubleshooting, privacy questions, and contact information." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0a0a0f;
+      --surface:   #13131a;
+      --border:    #1e1e2a;
+      --accent:    #6c63ff;
+      --accent2:   #a78bfa;
+      --text:      #f0f0f5;
+      --muted:     #7c7c96;
+      --body:      #c0c0d0;
+      --radius:    14px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+    }
+
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 32px;
+      background: rgba(10,10,15,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; color: var(--text); text-decoration: none; }
+    .nav-logo span { color: var(--accent); }
+    .nav-back { color: var(--muted); font-size: 14px; text-decoration: none; transition: color .15s; }
+    .nav-back:hover { color: var(--text); }
+
+    .container {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 64px 24px 96px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 24px;
+      align-items: center;
+      margin-bottom: 48px;
+    }
+
+    .app-icon {
+      width: 88px;
+      height: 88px;
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 18px 48px rgba(0,0,0,.35);
+    }
+
+    .page-tag {
+      display: inline-block;
+      background: rgba(108,99,255,.15);
+      color: var(--accent2);
+      border: 1px solid rgba(108,99,255,.3);
+      border-radius: 99px;
+      padding: 5px 14px; font-size: 13px; font-weight: 500;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-size: clamp(36px, 6vw, 56px);
+      font-weight: 900;
+      letter-spacing: -2px;
+      line-height: 1.05;
+      margin-bottom: 12px;
+    }
+    h1 span { color: var(--accent); }
+
+    .subtitle {
+      color: var(--body);
+      font-size: 16px;
+      max-width: 620px;
+    }
+
+    .quick-contact {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      margin-bottom: 40px;
+    }
+    .quick-contact h2 {
+      font-size: 20px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+    .quick-contact p {
+      color: var(--body);
+      font-size: 15px;
+      margin-bottom: 18px;
+    }
+
+    .email-link {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 10px;
+      padding: 12px 18px;
+      font-size: 15px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: opacity .15s, transform .15s;
+      overflow-wrap: anywhere;
+    }
+    .email-link:hover { opacity: .9; transform: translateY(-1px); text-decoration: none; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 16px;
+      margin-bottom: 48px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+    }
+    .card h2 {
+      font-size: 18px;
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+    .card p, .card li {
+      color: var(--body);
+      font-size: 14px;
+    }
+    .card ul {
+      padding-left: 18px;
+      margin-top: 10px;
+    }
+    .card li { margin-bottom: 7px; }
+
+    .section {
+      border-top: 1px solid var(--border);
+      padding-top: 40px;
+      margin-top: 8px;
+    }
+    .section h2 {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.4px;
+      margin-bottom: 12px;
+    }
+    .section p {
+      color: var(--body);
+      font-size: 15px;
+      margin-bottom: 14px;
+      max-width: 720px;
+    }
+
+    .links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 18px;
+    }
+    .links a {
+      color: var(--accent2);
+      border: 1px solid rgba(108,99,255,.3);
+      border-radius: 10px;
+      padding: 10px 14px;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .links a:hover {
+      background: rgba(108,99,255,.12);
+      text-decoration: none;
+    }
+
+    a { color: var(--accent2); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    footer {
+      text-align: center;
+      padding: 32px 24px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 13px;
+    }
+    footer a { color: var(--muted); }
+    footer a:hover { color: var(--text); }
+
+    @media (max-width: 620px) {
+      nav { padding: 16px 20px; }
+      .container { padding-top: 48px; }
+      .hero { grid-template-columns: 1fr; }
+      .app-icon { width: 76px; height: 76px; border-radius: 19px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <a href="/" class="nav-logo">Rally<span>.</span></a>
+    <a href="/" class="nav-back">Back to home</a>
+  </nav>
+
+  <main class="container">
+    <div class="hero">
+      <img src="/appicon.png" alt="Rally app icon" class="app-icon" />
+      <div>
+        <div class="page-tag">Support</div>
+        <h1>Rally <span>Support</span></h1>
+        <p class="subtitle">
+          Need help with Rally? Contact Fynko Technologies for account, attendance,
+          privacy, or technical support.
+        </p>
+      </div>
+    </div>
+
+    <section class="quick-contact" aria-labelledby="contact-heading">
+      <h2 id="contact-heading">Contact support</h2>
+      <p>
+        Email us with a short description of the issue, the email address on your Rally
+        account, and your organization name if you are part of one.
+      </p>
+      <a href="mailto:fynkotechnologies@gmail.com?subject=Rally%20Support%20Request" class="email-link">fynkotechnologies@gmail.com</a>
+    </section>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Account help</h2>
+        <p>We can help with sign-in issues, invite codes, profile updates, and account deletion questions.</p>
+      </section>
+
+      <section class="card">
+        <h2>Attendance help</h2>
+        <p>For check-in issues, include the program name, date, and whether you used GPS, QR code, or virtual attendance.</p>
+      </section>
+
+      <section class="card">
+        <h2>Technical support</h2>
+        <p>For app problems, include your device type, iOS version, and what you were doing when the issue happened.</p>
+      </section>
+    </div>
+
+    <section class="section" aria-labelledby="before-email-heading">
+      <h2 id="before-email-heading">What to include</h2>
+      <p>To help us respond faster, please include:</p>
+      <div class="card">
+        <ul>
+          <li>Your full name and Rally account email</li>
+          <li>Your organization name, if applicable</li>
+          <li>A clear description of the issue</li>
+          <li>Screenshots or exact error messages, if available</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="resources-heading">
+      <h2 id="resources-heading">Helpful links</h2>
+      <p>
+        You can review Rally's privacy policy or account deletion information at any time.
+      </p>
+      <div class="links">
+        <a href="/privacy/">Privacy Policy</a>
+        <a href="/delete-account/">Delete Account</a>
+        <a href="/">Rally Home</a>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="developer-heading">
+      <h2 id="developer-heading">Developer</h2>
+      <p>
+        Rally is provided by Fynko Technologies. Support requests are handled through
+        <a href="mailto:fynkotechnologies@gmail.com">fynkotechnologies@gmail.com</a>.
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    <p>
+      © 2026 Rally &nbsp;·&nbsp; Fynko Technologies &nbsp;·&nbsp;
+      <a href="/">Home</a> &nbsp;·&nbsp;
+      <a href="/privacy/">Privacy Policy</a>
+    </p>
+  </footer>
+
+</body>
+</html>
