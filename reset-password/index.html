@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reset Password — Rally</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f; --surface: #13131a; --border: #1e1e2a;
+      --accent: #6c63ff; --accent-dim: #6c63ff22;
+      --green: #22c55e; --green-dim: #16a34a20;
+      --red: #ef4444; --red-dim: #ef444420;
+      --text: #f0f0f5; --muted: #7c7c96;
+    }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 24px; padding: 48px 32px;
+      max-width: 400px; width: 100%;
+    }
+    .logo {
+      font-size: 26px; font-weight: 900; letter-spacing: -1px;
+      margin-bottom: 36px; color: var(--text); text-align: center;
+    }
+    .logo span { color: var(--accent); }
+
+    /* ── spinner ── */
+    .spinner {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: 3px solid var(--border); border-top-color: var(--accent);
+      animation: spin .8s linear infinite; margin: 0 auto 28px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pop {
+      from { transform: scale(.5); opacity: 0; }
+      to   { transform: scale(1);  opacity: 1; }
+    }
+
+    /* ── icon wrap ── */
+    .icon-wrap {
+      width: 72px; height: 72px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 24px;
+      animation: pop .4s cubic-bezier(.34,1.56,.64,1) both;
+    }
+    .icon-wrap.green { background: var(--green-dim); border: 2px solid var(--green); }
+    .icon-wrap.red   { background: var(--red-dim);   border: 2px solid var(--red);   }
+    .icon-wrap svg { width: 36px; height: 36px; }
+
+    /* ── text ── */
+    h1 { font-size: 22px; font-weight: 800; margin-bottom: 10px; text-align: center; }
+    .sub { color: var(--muted); font-size: 15px; line-height: 1.6; margin-bottom: 32px; text-align: center; }
+
+    /* ── form ── */
+    .field { margin-bottom: 20px; }
+    label {
+      display: block; font-size: 12px; font-weight: 700;
+      color: var(--muted); letter-spacing: .4px; text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .input-wrap { position: relative; }
+    input[type="password"], input[type="text"] {
+      width: 100%; background: #0d0d14; border: 1.5px solid var(--border);
+      border-radius: 12px; padding: 14px 44px 14px 16px;
+      font-size: 15px; font-family: inherit; color: var(--text);
+      outline: none; transition: border-color .15s;
+    }
+    input:focus { border-color: var(--accent); }
+    input.err { border-color: var(--red); }
+    .eye {
+      position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer; color: var(--muted);
+      padding: 4px; line-height: 0;
+    }
+    .eye:hover { color: var(--text); }
+    .field-err {
+      font-size: 12px; color: var(--red); margin-top: 6px; display: none;
+    }
+
+    /* ── strength bar ── */
+    .strength-bar {
+      height: 4px; border-radius: 2px; background: var(--border);
+      margin-top: 8px; overflow: hidden;
+    }
+    .strength-fill {
+      height: 100%; border-radius: 2px; width: 0;
+      transition: width .25s, background .25s;
+    }
+
+    /* ── button ── */
+    .btn {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; border: none; border-radius: 14px;
+      padding: 15px; font-size: 15px; font-weight: 700;
+      cursor: pointer; text-decoration: none;
+      font-family: inherit; transition: opacity .15s, transform .1s;
+    }
+    .btn:active { transform: scale(.98); }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { opacity: .88; }
+    .btn-primary:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+    .btn-ghost {
+      background: transparent; border: 1px solid var(--border);
+      color: var(--muted); margin-top: 10px; font-size: 14px;
+    }
+    .btn-ghost:hover { color: var(--text); border-color: #333; }
+
+    /* ── views ── */
+    #view-loading, #view-form, #view-success, #view-error { display: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">Rally<span>.</span></div>
+
+    <!-- Loading -->
+    <div id="view-loading">
+      <div class="spinner"></div>
+      <h1>One moment…</h1>
+      <p class="sub">Verifying your reset link.</p>
+    </div>
+
+    <!-- Form -->
+    <div id="view-form">
+      <h1>Set New Password</h1>
+      <p class="sub">Choose a strong password — at least 8 characters.</p>
+
+      <div class="field">
+        <label for="pw-new">New Password</label>
+        <div class="input-wrap">
+          <input id="pw-new" type="password" placeholder="Enter new password" autocomplete="new-password" />
+          <button class="eye" type="button" onclick="toggleEye('pw-new', this)" aria-label="Show/hide password">
+            <svg id="eye-new" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
+        <div class="strength-bar"><div class="strength-fill" id="strength-fill"></div></div>
+        <div class="field-err" id="err-new"></div>
+      </div>
+
+      <div class="field">
+        <label for="pw-confirm">Confirm Password</label>
+        <div class="input-wrap">
+          <input id="pw-confirm" type="password" placeholder="Repeat new password" autocomplete="new-password" />
+          <button class="eye" type="button" onclick="toggleEye('pw-confirm', this)" aria-label="Show/hide password">
+            <svg id="eye-confirm" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
+        <div class="field-err" id="err-confirm"></div>
+      </div>
+
+      <div class="field-err" id="err-submit" style="font-size:13px;margin-bottom:12px;text-align:center;"></div>
+
+      <button class="btn btn-primary" id="submit-btn" onclick="submitPassword()">
+        Update Password
+      </button>
+    </div>
+
+    <!-- Success -->
+    <div id="view-success">
+      <div class="icon-wrap green">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.5"
+             stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <h1>Password Updated!</h1>
+      <p class="sub">Your new password is set. Open Rally and sign in — you're good to go.</p>
+      <a href="#" class="btn btn-primary" id="open-app-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px">
+          <rect x="5" y="2" width="14" height="20" rx="2"/>
+          <line x1="12" y1="18" x2="12.01" y2="18"/>
+        </svg>
+        Open Rally App
+      </a>
+      <a href="/" class="btn btn-ghost">Back to justrallyit.space</a>
+    </div>
+
+    <!-- Error -->
+    <div id="view-error">
+      <div class="icon-wrap red">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2.5"
+             stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </div>
+      <h1 id="err-title">Link Expired</h1>
+      <p class="sub" id="err-body">This password reset link has expired or already been used. Request a new one from the Rally app.</p>
+      <a href="/" class="btn btn-ghost">Back to justrallyit.space</a>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+  (function () {
+    var SUPABASE_URL  = 'https://hbghbextytgrpnzbsppz.supabase.co';
+    var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhiZ2hiZXh0eXRncnBuemJzcHB6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0MDIxMDksImV4cCI6MjA3Mzk3ODEwOX0.LXlv55Vm3liQagC-zWAeQ3pl9G_x1lL1zVmq-_uUm24';
+
+    var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    function show(id) {
+      ['view-loading','view-form','view-success','view-error'].forEach(function(v) {
+        document.getElementById(v).style.display = v === id ? 'block' : 'none';
+      });
+    }
+
+    function showError(title, body) {
+      document.getElementById('err-title').textContent = title || 'Link Expired';
+      document.getElementById('err-body').textContent  = body  || 'This reset link has expired or already been used. Request a new one from the Rally app.';
+      show('view-error');
+    }
+
+    // ── Strength bar ───────────────────────────────────────────────────────────
+    document.getElementById('pw-new').addEventListener('input', function () {
+      var val = this.value;
+      var score = 0;
+      if (val.length >= 8)  score++;
+      if (val.length >= 12) score++;
+      if (/[A-Z]/.test(val)) score++;
+      if (/[0-9]/.test(val)) score++;
+      if (/[^A-Za-z0-9]/.test(val)) score++;
+      var fill = document.getElementById('strength-fill');
+      var pct = Math.round(score / 5 * 100) + '%';
+      var color = score <= 1 ? '#ef4444' : score <= 3 ? '#f97316' : '#22c55e';
+      fill.style.width   = pct;
+      fill.style.background = color;
+    });
+
+    // ── Eye toggle ─────────────────────────────────────────────────────────────
+    window.toggleEye = function(inputId, btn) {
+      var inp = document.getElementById(inputId);
+      var isHidden = inp.type === 'password';
+      inp.type = isHidden ? 'text' : 'password';
+      btn.querySelector('svg').style.opacity = isHidden ? '0.4' : '1';
+    };
+
+    // ── Submit ─────────────────────────────────────────────────────────────────
+    window.submitPassword = async function () {
+      var newPw  = document.getElementById('pw-new').value;
+      var confPw = document.getElementById('pw-confirm').value;
+      var btn    = document.getElementById('submit-btn');
+
+      // Clear previous errors
+      ['err-new','err-confirm','err-submit'].forEach(function(id) {
+        var el = document.getElementById(id);
+        el.style.display = 'none'; el.textContent = '';
+      });
+      document.getElementById('pw-new').classList.remove('err');
+      document.getElementById('pw-confirm').classList.remove('err');
+
+      var valid = true;
+      if (newPw.length < 8) {
+        showFieldErr('pw-new','err-new','Must be at least 8 characters.');
+        valid = false;
+      }
+      if (newPw !== confPw) {
+        showFieldErr('pw-confirm','err-confirm','Passwords do not match.');
+        valid = false;
+      }
+      if (!valid) return;
+
+      btn.disabled = true;
+      btn.textContent = 'Updating…';
+
+      try {
+        var res = await sb.auth.updateUser({ password: newPw });
+        if (res.error) {
+          btn.disabled = false; btn.textContent = 'Update Password';
+          document.getElementById('err-submit').textContent = res.error.message || 'Something went wrong. Please try again.';
+          document.getElementById('err-submit').style.display = 'block';
+        } else {
+          show('view-success');
+        }
+      } catch (e) {
+        btn.disabled = false; btn.textContent = 'Update Password';
+        document.getElementById('err-submit').textContent = 'Something went wrong. Please try again.';
+        document.getElementById('err-submit').style.display = 'block';
+      }
+    };
+
+    function showFieldErr(inputId, errId, msg) {
+      document.getElementById(inputId).classList.add('err');
+      var el = document.getElementById(errId);
+      el.textContent = msg; el.style.display = 'block';
+    }
+
+    // ── Entry point ────────────────────────────────────────────────────────────
+    show('view-loading');
+
+    // Parse both hash fragment (implicit flow) and query string (PKCE flow)
+    var hashParams  = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    var queryParams = new URLSearchParams(window.location.search);
+
+    var accessToken  = hashParams.get('access_token');
+    var refreshToken = hashParams.get('refresh_token') || '';
+    var type         = hashParams.get('type') || queryParams.get('type') || '';
+    var code         = queryParams.get('code');
+
+    if (accessToken && type === 'recovery') {
+      // Implicit flow: set the session from the tokens in the URL fragment
+      sb.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
+        .then(function(r) {
+          if (r.error) { showError('Link Expired', r.error.message); }
+          else { show('view-form'); }
+        });
+
+    } else if (code) {
+      // PKCE flow: exchange the code for a session
+      sb.auth.exchangeCodeForSession(code)
+        .then(function(r) {
+          if (r.error) { showError('Link Expired', r.error.message); }
+          else { show('view-form'); }
+        });
+
+    } else {
+      // Let the SDK detect and process the URL automatically (fires PASSWORD_RECOVERY)
+      var handled = false;
+      sb.auth.onAuthStateChange(function(event, session) {
+        if (handled) return;
+        if (event === 'PASSWORD_RECOVERY') {
+          handled = true;
+          show('view-form');
+        } else if (event === 'SIGNED_IN' && session) {
+          // PKCE code was exchanged — check if it was a recovery sign-in
+          handled = true;
+          show('view-form');
+        }
+      });
+
+      // If nothing fires within 4 s the link is probably expired
+      setTimeout(function() {
+        if (!handled) {
+          showError('Link Not Found', 'This reset link is invalid, expired, or has already been used. Request a new one from the Rally app.');
+        }
+      }, 4000);
+    }
+
+    // ── Open app button ────────────────────────────────────────────────────────
+    document.getElementById('open-app-btn').addEventListener('click', function(e) {
+      e.preventDefault();
+      window.location.href = 'rally://login-callback';
+      setTimeout(function() {
+        // If app didn't open, silently stay on this page — already showing success
+      }, 1500);
+    });
+
+  })();
+  </script>
+</body>
+</html>
