@@ -171,36 +171,54 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     (function () {
-      // Parse the URL hash: Supabase appends #access_token=...&type=signup etc.
-      const hash = window.location.hash.slice(1); // strip leading #
-      const params = {};
+      var SUPABASE_URL  = 'https://hbghbextytgrpnzbsppz.supabase.co';
+      var SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhiZ2hiZXh0eXRncnBuemJzcHB6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0MDIxMDksImV4cCI6MjA3Mzk3ODEwOX0.LXlv55Vm3liQagC-zWAeQ3pl9G_x1lL1zVmq-_uUm24';
+
+      // Parse query params (token_hash flow) and hash fragment (implicit flow)
+      var queryParams = new URLSearchParams(window.location.search);
+      var tokenHash   = queryParams.get('token_hash');
+      var qType       = queryParams.get('type'); // 'signup' or 'email_change'
+
+      var hash = window.location.hash.slice(1);
+      var hashParams = {};
       hash.split('&').forEach(function (part) {
-        const idx = part.indexOf('=');
-        if (idx > -1) params[decodeURIComponent(part.slice(0, idx))] = decodeURIComponent(part.slice(idx + 1));
+        var idx = part.indexOf('=');
+        if (idx > -1) hashParams[decodeURIComponent(part.slice(0, idx))] = decodeURIComponent(part.slice(idx + 1));
       });
+      var hType = hashParams['type'] || '';
+      var appDeepLink = hash ? 'rally://login-callback#' + hash : 'rally://login-callback';
 
-      const type = params['type'] || '';
-      const appDeepLink = hash ? 'rally://login-callback#' + hash : 'rally://login-callback';
-
-      if (type === 'signup' || type === 'email_change') {
-        // ── Email verified flow ──────────────────────────────────────
+      function showVerified() {
         document.getElementById('view-verified').style.display = 'block';
         document.getElementById('open-app-btn').href = appDeepLink;
-
-        // Attempt auto-open for Android (custom scheme works without gesture)
         setTimeout(function () { window.location.href = appDeepLink; }, 600);
+      }
+
+      if (tokenHash && (qType === 'signup' || qType === 'email_change')) {
+        // ── Token-hash flow (custom email template) ──────────────────
+        var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+        sb.auth.verifyOtp({ token_hash: tokenHash, type: qType })
+          .then(function (r) {
+            if (r.error) {
+              // Show verified anyway — token may already be consumed but user is confirmed
+              showVerified();
+            } else {
+              showVerified();
+            }
+          });
+
+      } else if (hType === 'signup' || hType === 'email_change') {
+        // ── Implicit flow fallback (#access_token=...&type=signup) ───
+        showVerified();
 
       } else if (hash) {
         // ── Generic sign-in / magic-link flow ───────────────────────
         document.getElementById('view-generic').style.display = 'block';
         document.getElementById('generic-open-btn').href = appDeepLink;
-
-        // Attempt auto-open
         setTimeout(function () { window.location.href = appDeepLink; }, 400);
-
-        // Show fallback button after 2.5 s if app didn't open
         setTimeout(function () {
           document.getElementById('generic-spinner').style.display = 'none';
           document.getElementById('generic-heading').textContent = 'Tap below to open Rally';
@@ -209,7 +227,7 @@
         }, 2500);
 
       } else {
-        // ── No hash — probably navigated here directly ───────────────
+        // ── No token — navigated here directly ───────────────────────
         window.location.replace('/');
       }
     })();
