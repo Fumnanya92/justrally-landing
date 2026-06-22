@@ -300,52 +300,32 @@
     // ── Entry point ────────────────────────────────────────────────────────────
     show('view-loading');
 
-    // Parse both hash fragment (implicit flow) and query string (PKCE flow)
     var hashParams  = new URLSearchParams(window.location.hash.replace(/^#/, ''));
     var queryParams = new URLSearchParams(window.location.search);
 
     var accessToken  = hashParams.get('access_token');
     var refreshToken = hashParams.get('refresh_token') || '';
+    var tokenHash    = queryParams.get('token_hash');
     var type         = hashParams.get('type') || queryParams.get('type') || '';
-    var code         = queryParams.get('code');
 
-    if (accessToken && type === 'recovery') {
-      // Implicit flow: set the session from the tokens in the URL fragment
+    if (tokenHash) {
+      // Token-hash flow (our custom recovery email template)
+      sb.auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' })
+        .then(function(r) {
+          if (r.error) { showError('Link Expired', r.error.message); }
+          else { show('view-form'); }
+        });
+
+    } else if (accessToken && type === 'recovery') {
+      // Implicit flow fallback: token in URL hash fragment
       sb.auth.setSession({ access_token: accessToken, refresh_token: refreshToken })
         .then(function(r) {
           if (r.error) { showError('Link Expired', r.error.message); }
           else { show('view-form'); }
         });
 
-    } else if (code) {
-      // PKCE flow: exchange the code for a session
-      sb.auth.exchangeCodeForSession(code)
-        .then(function(r) {
-          if (r.error) { showError('Link Expired', r.error.message); }
-          else { show('view-form'); }
-        });
-
     } else {
-      // Let the SDK detect and process the URL automatically (fires PASSWORD_RECOVERY)
-      var handled = false;
-      sb.auth.onAuthStateChange(function(event, session) {
-        if (handled) return;
-        if (event === 'PASSWORD_RECOVERY') {
-          handled = true;
-          show('view-form');
-        } else if (event === 'SIGNED_IN' && session) {
-          // PKCE code was exchanged — check if it was a recovery sign-in
-          handled = true;
-          show('view-form');
-        }
-      });
-
-      // If nothing fires within 4 s the link is probably expired
-      setTimeout(function() {
-        if (!handled) {
-          showError('Link Not Found', 'This reset link is invalid, expired, or has already been used. Request a new one from the Rally app.');
-        }
-      }, 4000);
+      showError('Link Not Found', 'This reset link is invalid or has already been used. Request a new one from the Rally app.');
     }
 
     // ── Open app button ────────────────────────────────────────────────────────
