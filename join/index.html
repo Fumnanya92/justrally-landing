@@ -86,6 +86,10 @@
       <button class="btn-outline" id="copy-btn" onclick="copyCode()">Copy Invite Code</button>
       <div id="copied-msg">Copied to clipboard ✓</div>
 
+      <div id="store-cta" style="display:none">
+        <a class="btn" id="store-btn" href="#" style="text-decoration:none; display:block; text-align:center;">Get Rally</a>
+      </div>
+
       <div class="divider"></div>
 
       <div class="instructions">
@@ -115,6 +119,41 @@
     } else {
       document.getElementById('with-code').style.display = 'none';
       document.getElementById('no-code').style.display = 'block';
+    }
+
+    const ANDROID_STORE_URL = 'https://play.google.com/store/apps/details?id=space.justrallyit.rally';
+    const IOS_STORE_URL = 'https://apps.apple.com/ng/app/rallyit/id6778239151';
+
+    function detectPlatform() {
+      const ua = navigator.userAgent || '';
+      if (/android/i.test(ua)) return 'android';
+      if (/iphone|ipad|ipod/i.test(ua)) return 'ios';
+      return 'other';
+    }
+
+    if (code) {
+      const platform = detectPlatform();
+      const storeCta = document.getElementById('store-cta');
+      const storeBtn = document.getElementById('store-btn');
+
+      if (platform === 'android') {
+        storeBtn.href = ANDROID_STORE_URL + '&referrer=' +
+          encodeURIComponent('rally_join_code=' + code);
+        storeBtn.textContent = 'Get it on Google Play';
+        storeCta.style.display = 'block';
+      } else if (platform === 'ios') {
+        storeBtn.href = IOS_STORE_URL;
+        storeBtn.textContent = 'Download on the App Store';
+        storeCta.style.display = 'block';
+        storeBtn.addEventListener('click', function () {
+          // Best-effort: iOS has no install-referrer equivalent, so the
+          // code is handed off via clipboard for the app to read on first
+          // launch. Never block navigation to the store on this succeeding.
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(code).catch(function () {});
+          }
+        });
+      }
     }
 
     function openApp() {
