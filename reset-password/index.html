@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <script>(function(){try{var t=localStorage.getItem('rally-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Reset Password — Rally</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -9,11 +10,24 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --bg: #0a0a0f; --surface: #13131a; --border: #1e1e2a;
-      --accent: #6c63ff; --accent-dim: #6c63ff22;
+      --bg: #f5f6fa; --surface: #ffffff; --border: #e4e6ea;
+      --navy: #000666; --navy-dim: #0006661a; --gold: #FCD400;
+      --accent: var(--navy); --accent-border-hover: rgba(0,6,102,.3);
       --green: #22c55e; --green-dim: #16a34a20;
       --red: #ef4444; --red-dim: #ef444420;
-      --text: #f0f0f5; --muted: #7c7c96;
+      --text: #191c1e; --muted: #5a5c6b;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #0a0b1a; --surface: #12132b; --border: #262842;
+        --accent: #8b93ff; --accent-border-hover: rgba(139,147,255,.5);
+        --text: #eef0fa; --muted: #9294b0;
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #0a0b1a; --surface: #12132b; --border: #262842;
+      --accent: #8b93ff; --accent-border-hover: rgba(139,147,255,.5);
+      --text: #eef0fa; --muted: #9294b0;
     }
     body {
       font-family: 'Inter', system-ui, sans-serif;
@@ -26,12 +40,14 @@
       background: var(--surface); border: 1px solid var(--border);
       border-radius: 24px; padding: 48px 32px;
       max-width: 400px; width: 100%;
+      box-shadow: 0 1px 2px rgba(0,6,102,.06), 0 12px 32px -16px rgba(0,6,102,.18);
     }
     .logo {
-      font-size: 26px; font-weight: 900; letter-spacing: -1px;
-      margin-bottom: 36px; color: var(--text); text-align: center;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      font-size: 22px; font-weight: 900; letter-spacing: -1px;
+      margin-bottom: 36px; color: var(--accent); text-align: center;
     }
-    .logo span { color: var(--accent); }
+    .logo img { width: 32px; height: 32px; border-radius: 9px; }
 
     /* ── spinner ── */
     .spinner {
@@ -69,7 +85,7 @@
     }
     .input-wrap { position: relative; }
     input[type="password"], input[type="text"] {
-      width: 100%; background: #0d0d14; border: 1.5px solid var(--border);
+      width: 100%; background: var(--bg); border: 1.5px solid var(--border);
       border-radius: 12px; padding: 14px 44px 14px 16px;
       font-size: 15px; font-family: inherit; color: var(--text);
       outline: none; transition: border-color .15s;
@@ -105,22 +121,63 @@
       font-family: inherit; transition: opacity .15s, transform .1s;
     }
     .btn:active { transform: scale(.98); }
-    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary { background: var(--navy); color: #fff; }
     .btn-primary:hover { opacity: .88; }
     .btn-primary:disabled { opacity: .45; cursor: not-allowed; transform: none; }
     .btn-ghost {
       background: transparent; border: 1px solid var(--border);
       color: var(--muted); margin-top: 10px; font-size: 14px;
     }
-    .btn-ghost:hover { color: var(--text); border-color: #333; }
+    .btn-ghost:hover { color: var(--accent); border-color: var(--accent-border-hover); }
 
     /* ── views ── */
     #view-loading, #view-form, #view-success, #view-error { display: none; }
+
+    /* ── Theme toggle ── */
+    .theme-toggle-wrap { position: fixed; top: 16px; right: 16px; z-index: 300; }
+    .theme-toggle {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--muted); cursor: pointer; padding: 0;
+      transition: border-color .15s, color .15s;
+    }
+    .theme-toggle:hover { color: var(--accent); }
+    .theme-toggle svg { width: 18px; height: 18px; }
+    .theme-panel {
+      position: absolute; top: calc(100% + 8px); right: 0; z-index: 300;
+      width: 200px; padding: 20px 12px 12px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+      box-shadow: 0 20px 48px -16px rgba(0,0,0,.28);
+    }
+    .theme-panel[hidden] { display: none; }
+    .theme-track { position: relative; display: flex; justify-content: space-between; }
+    .theme-track::before {
+      content: ''; position: absolute; left: 0; right: 0; top: 12px; height: 1px; background: var(--border);
+    }
+    .theme-track button {
+      position: relative; z-index: 1; background: none; border: none; cursor: pointer;
+      font-family: inherit; font-size: 11px; font-weight: 500; color: var(--muted);
+      padding: 28px 4px 0;
+    }
+    .theme-track button.is-selected { font-weight: 700; color: var(--text); }
+    .theme-glyph { position: absolute; top: 0; left: 0; width: 20px; height: 20px; color: var(--gold); pointer-events: none; }
+    .theme-glyph svg { width: 20px; height: 20px; }
   </style>
 </head>
 <body>
+  <div class="theme-toggle-wrap">
+    <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Appearance" aria-haspopup="true" aria-expanded="false"></button>
+    <div id="theme-panel" class="theme-panel" hidden>
+      <div class="theme-track">
+        <button type="button" data-theme-choice="light">Light</button>
+        <button type="button" data-theme-choice="system">Auto</button>
+        <button type="button" data-theme-choice="dark">Dark</button>
+        <span class="theme-glyph" aria-hidden="true"></span>
+      </div>
+    </div>
+  </div>
   <div class="card">
-    <div class="logo">Rally<span>.</span></div>
+    <div class="logo"><img src="/assets/appicon.png" alt="Rally logo" width="32" height="32" />Rally</div>
 
     <!-- Loading -->
     <div id="view-loading">
@@ -339,5 +396,6 @@
 
   })();
   </script>
+  <script src="/assets/theme.js" defer></script>
 </body>
 </html>

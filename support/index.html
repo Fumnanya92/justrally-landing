@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <script>(function(){try{var t=localStorage.getItem('rally-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Rally Support</title>
   <meta name="description" content="Get support for Rally, including account help, attendance troubleshooting, privacy questions, and contact information." />
@@ -12,15 +13,50 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:        #0a0a0f;
-      --surface:   #13131a;
-      --border:    #1e1e2a;
-      --accent:    #6c63ff;
-      --accent2:   #a78bfa;
-      --text:      #f0f0f5;
-      --muted:     #7c7c96;
-      --body:      #c0c0d0;
+      --bg:        #ffffff;
+      --surface:   #f9fafb;
+      --border:    #e4e6ea;
+      --navy:      #000666;
+      --gold:      #FCD400;
+      --accent:    var(--navy);
+      --accent2:   var(--navy);
+      --text:      #191c1e;
+      --muted:     #5a5c6b;
+      --body:      #3f4147;
       --radius:    14px;
+      --nav-bg:    rgba(255,255,255,.9);
+      --tag-bg:    rgba(0,6,102,.08);
+      --tag-border: rgba(0,6,102,.2);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg:      #0a0b1a;
+        --surface: #12132b;
+        --border:  #262842;
+        --accent:  #8b93ff;
+        --accent2: #8b93ff;
+        --text:    #eef0fa;
+        --muted:   #9294b0;
+        --body:    #c7c9de;
+        --nav-bg:  rgba(10,11,26,.85);
+        --tag-bg:  rgba(139,147,255,.14);
+        --tag-border: rgba(139,147,255,.35);
+      }
+    }
+
+    :root[data-theme="dark"] {
+      --bg:      #0a0b1a;
+      --surface: #12132b;
+      --border:  #262842;
+      --accent:  #8b93ff;
+      --accent2: #8b93ff;
+      --text:    #eef0fa;
+      --muted:   #9294b0;
+      --body:    #c7c9de;
+      --nav-bg:  rgba(10,11,26,.85);
+      --tag-bg:  rgba(139,147,255,.14);
+      --tag-border: rgba(139,147,255,.35);
     }
 
     html { scroll-behavior: smooth; }
@@ -36,12 +72,12 @@
       position: sticky; top: 0; z-index: 100;
       display: flex; align-items: center; justify-content: space-between;
       padding: 18px 32px;
-      background: rgba(10,10,15,0.85);
+      background: var(--nav-bg);
       backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border);
     }
-    .nav-logo { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; color: var(--text); text-decoration: none; }
-    .nav-logo span { color: var(--accent); }
+    .nav-logo { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 800; letter-spacing: -0.5px; color: var(--accent); text-decoration: none; }
+    .nav-logo img { width: 32px; height: 32px; border-radius: 9px; }
     .nav-back { color: var(--muted); font-size: 14px; text-decoration: none; transition: color .15s; }
     .nav-back:hover { color: var(--text); }
 
@@ -63,15 +99,15 @@
       width: 88px;
       height: 88px;
       border-radius: 22px;
-      border: 1px solid rgba(255,255,255,.12);
-      box-shadow: 0 18px 48px rgba(0,0,0,.35);
+      border: 1px solid var(--border);
+      box-shadow: 0 18px 48px rgba(0,6,102,.18);
     }
 
     .page-tag {
       display: inline-block;
-      background: rgba(108,99,255,.15);
-      color: var(--accent2);
-      border: 1px solid rgba(108,99,255,.3);
+      background: var(--tag-bg);
+      color: var(--accent);
+      border: 1px solid var(--tag-border);
       border-radius: 99px;
       padding: 5px 14px; font-size: 13px; font-weight: 500;
       margin-bottom: 16px;
@@ -112,7 +148,7 @@
 
     .email-link {
       display: inline-block;
-      background: var(--accent);
+      background: var(--navy);
       color: #fff;
       border-radius: 10px;
       padding: 12px 18px;
@@ -177,8 +213,8 @@
       margin-top: 18px;
     }
     .links a {
-      color: var(--accent2);
-      border: 1px solid rgba(108,99,255,.3);
+      color: var(--accent);
+      border: 1px solid var(--tag-border);
       border-radius: 10px;
       padding: 10px 14px;
       text-decoration: none;
@@ -186,7 +222,7 @@
       font-weight: 700;
     }
     .links a:hover {
-      background: rgba(108,99,255,.12);
+      background: var(--tag-bg);
       text-decoration: none;
     }
 
@@ -209,18 +245,61 @@
       .hero { grid-template-columns: 1fr; }
       .app-icon { width: 76px; height: 76px; border-radius: 19px; }
     }
+
+    /* ── Theme toggle ── */
+    .theme-toggle-wrap { position: relative; display: inline-block; }
+    .theme-toggle {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 34px; height: 34px; border-radius: 9px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--muted); cursor: pointer; padding: 0;
+      transition: border-color .15s, color .15s;
+    }
+    .theme-toggle:hover { color: var(--accent); border-color: var(--tag-border); }
+    .theme-toggle svg { width: 17px; height: 17px; }
+    .theme-panel {
+      position: absolute; top: calc(100% + 8px); right: 0; z-index: 200;
+      width: 200px; padding: 20px 12px 12px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+      box-shadow: 0 20px 48px -16px rgba(0,0,0,.28);
+    }
+    .theme-panel[hidden] { display: none; }
+    .theme-track { position: relative; display: flex; justify-content: space-between; }
+    .theme-track::before {
+      content: ''; position: absolute; left: 0; right: 0; top: 12px; height: 1px; background: var(--border);
+    }
+    .theme-track button {
+      position: relative; z-index: 1; background: none; border: none; cursor: pointer;
+      font-family: inherit; font-size: 11px; font-weight: 500; color: var(--muted);
+      padding: 28px 4px 0;
+    }
+    .theme-track button.is-selected { font-weight: 700; color: var(--text); }
+    .theme-glyph { position: absolute; top: 0; left: 0; width: 20px; height: 20px; color: var(--gold); pointer-events: none; }
+    .theme-glyph svg { width: 20px; height: 20px; }
   </style>
 </head>
 <body>
 
   <nav>
-    <a href="/" class="nav-logo">Rally<span>.</span></a>
-    <a href="/" class="nav-back">Back to home</a>
+    <a href="/" class="nav-logo"><img src="/assets/appicon.png" alt="Rally logo" width="32" height="32" />Rally</a>
+    <div style="display:flex; align-items:center; gap:16px;">
+      <div class="theme-toggle-wrap">
+        <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Appearance" aria-haspopup="true" aria-expanded="false"></button>
+        <div id="theme-panel" class="theme-panel" hidden>
+          <div class="theme-track">
+            <button type="button" data-theme-choice="light">Light</button>
+            <button type="button" data-theme-choice="system">Auto</button>
+            <button type="button" data-theme-choice="dark">Dark</button>
+            <span class="theme-glyph" aria-hidden="true"></span>
+          </div>
+        </div>
+      </div>
+      <a href="/" class="nav-back">Back to home</a>
+    </div>
   </nav>
 
   <main class="container">
     <div class="hero">
-      <img src="/appicon.png" alt="Rally app icon" class="app-icon" />
+      <img src="/assets/appicon.png" alt="Rally app icon" class="app-icon" />
       <div>
         <div class="page-tag">Support</div>
         <h1>Rally <span>Support</span></h1>
@@ -301,5 +380,6 @@
     </p>
   </footer>
 
+  <script src="/assets/theme.js" defer></script>
 </body>
 </html>

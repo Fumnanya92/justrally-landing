@@ -2,9 +2,17 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <script>(function(){try{var t=localStorage.getItem('rally-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Rally — Just Rally It.</title>
-  <meta name="description" content="Rally helps organizations create programs, verify attendance, confirm participation, and track accountability." />
+  <title>Rally — Attendance. Participation. Accountability.</title>
+  <meta name="description" content="Rally verifies attendance with GPS check-in, QR invites and team-lead confirmation, then reports who actually showed up." />
+  <meta property="og:title" content="Rally — Attendance. Participation. Accountability." />
+  <meta property="og:description" content="GPS-verified check-in, team-lead confirmation, and real participation reports. Know who showed up — not who said they would." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="/assets/hero-checkin.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="/assets/hero-checkin.png" />
+  <link rel="icon" type="image/png" href="/assets/appicon.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -12,14 +20,68 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:        #0a0a0f;
-      --surface:   #13131a;
-      --border:    #1e1e2a;
-      --accent:    #6c63ff;
-      --accent2:   #a78bfa;
-      --text:      #f0f0f5;
-      --muted:     #7c7c96;
-      --radius:    14px;
+      --radius: 14px;
+      /* Rally brand */
+      --navy:      #000666;
+      --navy-ink:  #00034d;
+      --gold:      #FCD400;
+      --gold-ink:  #221b00;
+
+      --bg:        #ffffff;
+      --surface:   #f9fafb;
+      --card:      #ffffff;
+      --border:    #e4e6ea;
+      --text:      #191c1e;
+      --muted:     #5a5c6b;
+
+      /* foreground accent (headlines, links, icon strokes) — separate from
+         --navy so filled buttons/sections can stay navy in dark mode too */
+      --ink-accent:      var(--navy);
+      --ink-accent-bg:   rgba(0,6,102,.08);
+      --ink-accent-border: rgba(0,6,102,.18);
+      --ink-accent-border-hover: rgba(0,6,102,.5);
+
+      --shadow-card: 0 1px 2px rgba(0,6,102,.06), 0 12px 32px -16px rgba(0,6,102,.22);
+      --shadow-lift: 0 24px 60px -28px rgba(0,6,102,.4);
+      --nav-bg: rgba(255,255,255,.9);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg:        #0a0b1a;
+        --surface:   #12132b;
+        --card:      #12132b;
+        --border:    #262842;
+        --text:      #eef0fa;
+        --muted:     #9294b0;
+
+        --ink-accent:      #8b93ff;
+        --ink-accent-bg:   rgba(139,147,255,.14);
+        --ink-accent-border: rgba(139,147,255,.35);
+        --ink-accent-border-hover: rgba(139,147,255,.7);
+
+        --shadow-card: 0 1px 2px rgba(0,0,0,.4), 0 12px 32px -16px rgba(0,0,0,.6);
+        --shadow-lift: 0 24px 60px -28px rgba(0,0,0,.75);
+        --nav-bg: rgba(10,11,26,.85);
+      }
+    }
+
+    :root[data-theme="dark"] {
+      --bg:        #0a0b1a;
+      --surface:   #12132b;
+      --card:      #12132b;
+      --border:    #262842;
+      --text:      #eef0fa;
+      --muted:     #9294b0;
+
+      --ink-accent:      #8b93ff;
+      --ink-accent-bg:   rgba(139,147,255,.14);
+      --ink-accent-border: rgba(139,147,255,.35);
+      --ink-accent-border-hover: rgba(139,147,255,.7);
+
+      --shadow-card: 0 1px 2px rgba(0,0,0,.4), 0 12px 32px -16px rgba(0,0,0,.6);
+      --shadow-lift: 0 24px 60px -28px rgba(0,0,0,.75);
+      --nav-bg: rgba(10,11,26,.85);
     }
 
     html { scroll-behavior: smooth; }
@@ -29,260 +91,497 @@
       background: var(--bg);
       color: var(--text);
       line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
     }
 
+    h1, h2, h3 { letter-spacing: -0.03em; }
+
+    .wrap { max-width: 1120px; margin: 0 auto; padding-inline: 24px; }
+
+    a { color: inherit; }
+
     /* ── NAV ── */
-    nav {
+    header.nav {
       position: sticky; top: 0; z-index: 100;
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 18px 32px;
-      background: rgba(10,10,15,0.85);
+      background: var(--nav-bg);
       backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border);
     }
-    .nav-logo { font-size: 22px; font-weight: 800; letter-spacing: -0.5px; color: var(--text); text-decoration: none; }
-    .nav-logo span { color: var(--accent); }
-    .nav-cta {
-      background: var(--accent);
-      color: #fff;
-      border: none; border-radius: 8px;
-      padding: 9px 20px; font-size: 14px; font-weight: 600;
-      cursor: pointer; text-decoration: none;
-      transition: opacity .15s;
+    .nav-row {
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px;
     }
-    .nav-cta:hover { opacity: .85; }
+    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-logo img { width: 36px; height: 36px; border-radius: 10px; }
+    .nav-logo span { font-size: 19px; font-weight: 800; letter-spacing: -0.02em; color: var(--ink-accent); }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      border-radius: 10px; font-weight: 700; text-decoration: none;
+      cursor: pointer; border: none; transition: transform .15s, opacity .15s, border-color .15s;
+    }
+    .btn:active { transform: scale(.98); }
+    .btn-gold  { background: var(--gold); color: var(--gold-ink); }
+    .btn-gold:hover { transform: scale(1.03); }
+    .btn-navy  { background: var(--navy); color: #fff; }
+    .btn-navy:hover { transform: scale(1.02); }
+    .btn-outline-navy {
+      background: var(--card); color: var(--ink-accent);
+      border: 2px solid var(--ink-accent-border);
+    }
+    .btn-outline-navy:hover { border-color: var(--ink-accent-border-hover); }
+    .btn-outline-light {
+      background: transparent; color: #fff;
+      border: 2px solid rgba(255,255,255,.25);
+    }
+    .btn-outline-light:hover { border-color: rgba(255,255,255,.6); }
+    .btn-sm  { padding: 9px 18px; font-size: 14px; }
+    .btn-lg  { padding: 15px 28px; font-size: 16px; }
+    .btn-xl  { padding: 16px 32px; font-size: 16px; }
 
     /* ── HERO ── */
-    .hero {
-      text-align: center;
-      padding: 100px 24px 80px;
-      max-width: 760px; margin: 0 auto;
+    section.hero { background: var(--bg); }
+    .hero-grid {
+      display: grid; gap: 48px; align-items: center;
+      padding-block: 64px 80px;
     }
-    .hero-tag {
-      display: inline-block;
-      background: rgba(108,99,255,.15);
-      color: var(--accent2);
-      border: 1px solid rgba(108,99,255,.3);
-      border-radius: 99px;
-      padding: 5px 14px; font-size: 13px; font-weight: 500;
-      margin-bottom: 28px;
+    @media (min-width: 960px) {
+      .hero-grid { grid-template-columns: 1fr 1fr; padding-block: 96px; }
     }
-    h1 {
-      font-size: clamp(52px, 9vw, 88px);
-      font-weight: 900;
-      letter-spacing: -3px;
-      line-height: 1;
-      margin-bottom: 20px;
+    .eyebrow {
+      font-size: 13px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: .2em; color: var(--ink-accent);
     }
-    h1 span { color: var(--accent); }
-    .hero-sub {
-      font-size: clamp(18px, 2.5vw, 22px);
-      color: var(--muted);
-      margin-bottom: 40px;
-      letter-spacing: -0.3px;
+    h1.headline {
+      margin-top: 16px; font-size: clamp(34px, 6vw, 58px);
+      font-weight: 800; line-height: 1.06; color: var(--ink-accent);
     }
     .hero-desc {
-      font-size: 16px;
-      color: var(--muted);
-      max-width: 520px; margin: 0 auto 48px;
-      line-height: 1.7;
+      margin-top: 24px; max-width: 520px; font-size: 18px;
+      color: var(--muted); line-height: 1.7;
     }
-    .cta-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-    .btn-primary {
-      background: var(--accent);
-      color: #fff;
-      border: none; border-radius: var(--radius);
-      padding: 15px 32px; font-size: 16px; font-weight: 700;
-      cursor: pointer; text-decoration: none;
-      transition: transform .15s, opacity .15s;
+    .cta-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; }
+    .hero-note { margin-top: 16px; font-size: 14px; color: var(--muted); }
+    .hero-img-wrap { position: relative; }
+    .hero-img-wrap img {
+      width: 100%; height: auto; display: block; border-radius: 20px; box-shadow: var(--shadow-lift);
+      animation: float-slow 6s ease-in-out infinite;
     }
-    .btn-primary:hover { opacity: .9; transform: translateY(-1px); }
-    .btn-secondary {
-      background: transparent;
-      color: var(--text);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 15px 32px; font-size: 16px; font-weight: 600;
-      cursor: pointer; text-decoration: none;
-      transition: border-color .15s;
-    }
-    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
 
-    /* ── DIVIDER ── */
-    .divider { height: 1px; background: var(--border); margin: 0 32px; }
+    @keyframes float-slow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    @keyframes rise { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* ── SECTION ── */
-    section { padding: 80px 24px; max-width: 1080px; margin: 0 auto; }
-    .section-label {
-      text-transform: uppercase; font-size: 12px; font-weight: 700;
-      letter-spacing: 2px; color: var(--accent); margin-bottom: 14px;
-    }
-    h2 {
-      font-size: clamp(28px, 4vw, 40px);
-      font-weight: 800; letter-spacing: -1px;
-      margin-bottom: 16px;
-    }
-    .section-desc { color: var(--muted); font-size: 17px; max-width: 560px; line-height: 1.7; margin-bottom: 48px; }
+    .reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s ease-out, transform .7s ease-out; }
+    .reveal.left  { transform: translateX(-32px); }
+    .reveal.right { transform: translateX(32px); }
+    .reveal.in    { opacity: 1; transform: translate(0,0); }
 
-    /* ── CARDS GRID ── */
-    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 28px 24px;
-      transition: border-color .2s;
+    /* ── SECTION shared ── */
+    section { padding-block: 64px; }
+    @media (min-width: 640px) { section { padding-block: 96px; } }
+    .rule-gold::after {
+      content: ""; display: block; width: 40px; height: 3px;
+      background: var(--gold); margin-top: 16px;
     }
-    .card:hover { border-color: var(--accent); }
-    .card-icon {
-      width: 44px; height: 44px; border-radius: 12px;
-      background: rgba(108,99,255,.15);
+    h2.section-title {
+      font-size: clamp(28px, 4vw, 38px); font-weight: 800; color: var(--ink-accent);
+    }
+    .section-sub { margin-top: 16px; max-width: 640px; font-size: 17px; color: var(--muted); line-height: 1.7; }
+
+    /* ── AUDIENCES ── */
+    .audience-grid { margin-top: 48px; display: grid; gap: 24px; }
+    @media (min-width: 768px) { .audience-grid { grid-template-columns: repeat(3, 1fr); } }
+    .audience-card {
+      height: 100%; border: 1px solid var(--border); border-radius: 18px;
+      background: var(--card); padding: 28px; box-shadow: var(--shadow-card);
+      transition: transform .3s, box-shadow .3s;
+    }
+    .audience-card:hover { transform: translateY(-6px); box-shadow: var(--shadow-lift); }
+    .icon-tile {
+      width: 48px; height: 48px; border-radius: 12px; background: var(--navy);
       display: flex; align-items: center; justify-content: center;
-      margin-bottom: 16px; font-size: 22px;
     }
-    .card h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
-    .card p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+    .icon-tile svg { width: 24px; height: 24px; color: var(--gold); }
+    .audience-card h3 { margin-top: 20px; font-size: 20px; font-weight: 700; }
+    .audience-card p { margin-top: 8px; color: var(--muted); line-height: 1.6; }
 
-    /* ── FEATURES ROW ── */
-    .features { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
-    .feature {
-      display: flex; align-items: flex-start; gap: 12px;
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 18px 16px;
+    /* ── HOW IT WORKS ── */
+    section.how { background: var(--navy); }
+    .how h2, .how .section-sub { color: #fff; }
+    .how .section-sub { color: rgba(255,255,255,.7); }
+    .feature-grid { margin-top: 48px; display: grid; gap: 16px; grid-template-columns: repeat(2, 1fr); }
+    @media (min-width: 640px) { .feature-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (min-width: 1024px) { .feature-grid { grid-template-columns: repeat(4, 1fr); } }
+    .feature-card {
+      height: 100%; border-radius: 14px; padding: 20px;
+      background: rgba(255,255,255,.06); box-shadow: inset 0 0 0 1px rgba(255,255,255,.1);
+      transition: transform .3s, background .3s, box-shadow .3s;
     }
-    .feature-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-top: 7px; flex-shrink: 0; }
-    .feature p { font-size: 14px; font-weight: 500; }
+    .feature-card:hover { transform: translateY(-4px); background: rgba(255,255,255,.1); box-shadow: inset 0 0 0 1px rgba(252,212,0,.4); }
+    .feature-card svg { width: 24px; height: 24px; color: var(--gold); }
+    .feature-card p.label { margin-top: 12px; font-weight: 700; color: #fff; }
+    .feature-card p.note { margin-top: 4px; font-size: 14px; color: rgba(255,255,255,.6); }
+
+    /* ── USE CASES ── */
+    .usecase-grid { margin-top: 48px; display: grid; gap: 24px; }
+    @media (min-width: 768px) { .usecase-grid { grid-template-columns: repeat(3, 1fr); } }
+    .usecase-card {
+      overflow: hidden; border-radius: 18px; border: 1px solid var(--border);
+      background: var(--card); box-shadow: var(--shadow-card); transition: box-shadow .3s;
+    }
+    .usecase-card:hover { box-shadow: var(--shadow-lift); }
+    .usecase-media {
+      aspect-ratio: 4/3; background: var(--surface); display: flex;
+      align-items: center; justify-content: center; overflow: hidden;
+    }
+    .usecase-media.photo img {
+      width: 100%; height: 100%; object-fit: cover; object-position: top center;
+      transition: transform .5s;
+    }
+    .usecase-card:hover .usecase-media.photo img { transform: scale(1.05); }
+    .usecase-media.icon { background: var(--navy); }
+    .usecase-media.icon svg { width: 56px; height: 56px; color: var(--gold); }
+    .usecase-body { padding: 24px; }
+    .usecase-body h3 { font-size: 18px; font-weight: 700; }
+    .usecase-body p { margin-top: 8px; color: var(--muted); line-height: 1.6; }
+
+    /* ── WHY VERIFIED ── */
+    .why-grid { display: grid; gap: 48px; align-items: center; }
+    @media (min-width: 960px) { .why-grid { grid-template-columns: 1fr 1fr; } }
+    .why-list { margin-top: 32px; display: flex; flex-direction: column; gap: 20px; }
+    .why-item { display: flex; gap: 16px; }
+    .why-item svg { width: 24px; height: 24px; flex-shrink: 0; margin-top: 2px; color: var(--ink-accent); }
+    .why-item p.title { font-weight: 700; }
+    .why-item p.desc { color: var(--muted); }
+    .why-grid img { width: 100%; border-radius: 18px; box-shadow: var(--shadow-lift); }
+
+    /* ── FINAL CTA ── */
+    section.final-cta { background: var(--navy); text-align: center; }
+    .final-cta .wrap { max-width: 720px; }
+    .final-cta img.mark { width: 64px; height: 64px; border-radius: 16px; margin: 0 auto; }
+    .final-cta h2 { margin-top: 24px; font-size: clamp(28px, 5vw, 44px); font-weight: 800; color: #fff; }
+    .final-cta p.sub { margin: 16px auto 0; max-width: 520px; font-size: 18px; color: rgba(255,255,255,.7); }
+    .final-cta .cta-row { justify-content: center; }
+    .final-cta p.tag {
+      margin-top: 24px; font-size: 13px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .2em; color: var(--gold);
+    }
 
     /* ── FOOTER ── */
-    footer {
-      border-top: 1px solid var(--border);
-      padding: 32px 24px;
-      text-align: center;
-      color: var(--muted);
-      font-size: 13px;
+    footer { border-top: 1px solid var(--border); background: var(--bg); }
+    .footer-row {
+      display: flex; flex-direction: column; gap: 24px; align-items: center;
+      justify-content: space-between; padding-block: 40px; text-align: center;
     }
-    footer a { color: var(--muted); text-decoration: none; }
-    footer a:hover { color: var(--text); }
+    @media (min-width: 640px) { .footer-row { flex-direction: row; text-align: left; } }
+    .footer-brand { display: flex; align-items: center; gap: 10px; }
+    .footer-brand img { width: 28px; height: 28px; border-radius: 8px; }
+    .footer-brand span { font-weight: 800; color: var(--ink-accent); }
+    .footer-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 24px; }
+    .footer-links a { font-size: 14px; font-weight: 500; color: var(--muted); text-decoration: none; }
+    .footer-links a:hover { color: var(--ink-accent); }
+    footer p.copy { font-size: 14px; color: var(--muted); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .hero-img-wrap img { animation: none; }
+      .reveal { transition: none; opacity: 1; transform: none; }
+    }
+
+    /* ── Theme toggle ── */
+    .theme-toggle-wrap { position: relative; display: inline-block; }
+    .theme-toggle {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--muted); cursor: pointer; padding: 0;
+      transition: border-color .15s, color .15s;
+    }
+    .theme-toggle:hover { color: var(--ink-accent); border-color: var(--ink-accent-border); }
+    .theme-toggle svg { width: 18px; height: 18px; }
+    .theme-panel {
+      position: absolute; top: calc(100% + 8px); right: 0; z-index: 200;
+      width: 200px; padding: 20px 12px 12px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+      box-shadow: var(--shadow-lift);
+    }
+    .theme-panel[hidden] { display: none; }
+    .theme-track { position: relative; display: flex; justify-content: space-between; }
+    .theme-track::before {
+      content: ''; position: absolute; left: 0; right: 0; top: 12px; height: 1px; background: var(--border);
+    }
+    .theme-track button {
+      position: relative; z-index: 1; background: none; border: none; cursor: pointer;
+      font-family: inherit; font-size: 11px; font-weight: 500; color: var(--muted);
+      padding: 28px 4px 0;
+    }
+    .theme-track button.is-selected { font-weight: 700; color: var(--text); }
+    .theme-glyph { position: absolute; top: 0; left: 0; width: 20px; height: 20px; color: var(--gold); pointer-events: none; }
+    .theme-glyph svg { width: 20px; height: 20px; }
   </style>
 </head>
 <body>
 
-  <nav>
-    <a href="/" class="nav-logo">Rally<span>.</span></a>
-    <a href="/join/" class="nav-cta">Join with Code</a>
-  </nav>
-
-  <!-- HERO -->
-  <div class="hero">
-    <div class="hero-tag">Just Rally It.</div>
-    <h1><span>Rally</span></h1>
-    <p class="hero-sub">Attendance. Participation. Accountability.</p>
-    <p class="hero-desc">
-      Rally helps organizations create programs, verify attendance,
-      confirm participation, and track accountability — from any device,
-      anywhere.
-    </p>
-    <div class="cta-row">
-      <a href="#get-started" class="btn-primary">Get Started</a>
-      <a href="/join/" class="btn-secondary">Join with Code</a>
-    </div>
-  </div>
-
-  <div class="divider"></div>
-
-  <!-- WHO IT'S FOR -->
-  <section>
-    <p class="section-label">Built for everyone</p>
-    <h2>One platform. Every role.</h2>
-    <p class="section-desc">
-      Rally works for the whole organization — from leadership to individual members.
-    </p>
-    <div class="cards">
-      <div class="card">
-        <div class="card-icon">🏢</div>
-        <h3>For Organizations</h3>
-        <p>Create programs, manage units and groups, configure geofences, and view organization-wide reports.</p>
-      </div>
-      <div class="card">
-        <div class="card-icon">👥</div>
-        <h3>For Teams</h3>
-        <p>Team leaders confirm attendance, manage their group, and see participation trends at a glance.</p>
-      </div>
-      <div class="card">
-        <div class="card-icon">🙋</div>
-        <h3>For Members</h3>
-        <p>Check in with GPS, view your attendance history, and stay accountable to your commitments.</p>
+  <header class="nav">
+    <div class="wrap nav-row">
+      <a href="/" class="nav-logo" aria-label="Rally home">
+        <img src="/assets/appicon.png" alt="Rally logo" width="36" height="36" />
+        <span>Rally</span>
+      </a>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <div class="theme-toggle-wrap">
+          <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Appearance" aria-haspopup="true" aria-expanded="false"></button>
+          <div id="theme-panel" class="theme-panel" hidden>
+            <div class="theme-track">
+              <button type="button" data-theme-choice="light">Light</button>
+              <button type="button" data-theme-choice="system">Auto</button>
+              <button type="button" data-theme-choice="dark">Dark</button>
+              <span class="theme-glyph" aria-hidden="true"></span>
+            </div>
+          </div>
+        </div>
+        <a href="/join/" class="btn btn-gold btn-sm">Join with Code</a>
       </div>
     </div>
-  </section>
+  </header>
 
-  <div class="divider"></div>
+  <main>
+    <!-- HERO -->
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <p class="eyebrow">Attendance. Participation. Accountability.</p>
+          <h1 class="headline">Know who showed up. Not who said they would.</h1>
+          <p class="hero-desc">
+            Rally verifies attendance with GPS check-in, confirms participation through team leads,
+            and turns it all into reports your organization can act on.
+          </p>
+          <div class="cta-row">
+            <a href="/join/" class="btn btn-navy btn-lg">
+              Get Started
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            </a>
+            <a href="/join/" class="btn btn-outline-navy btn-lg">Join with Code</a>
+          </div>
+          <p class="hero-note">Have an invite from your organization? Join with Code is the fastest way in.</p>
+        </div>
+        <div class="hero-img-wrap">
+          <img src="/assets/hero-checkin.png" alt="A team member welcomes guests as a Rally check-in confirmation appears on screen" width="1536" height="1024" />
+        </div>
+      </div>
+    </section>
 
-  <!-- FEATURES -->
-  <section>
-    <p class="section-label">How it works</p>
-    <h2>Everything you need to run accountability.</h2>
-    <p class="section-desc">Purpose-built features that work offline and in the field.</p>
-    <div class="features">
-      <div class="feature">
-        <div class="feature-dot"></div>
-        <p>GPS check-in with geofencing</p>
+    <!-- WHO IT'S FOR -->
+    <section>
+      <div class="wrap">
+        <div class="reveal">
+          <h2 class="section-title rule-gold">Built for every level of your organization</h2>
+        </div>
+        <div class="audience-grid">
+          <div class="reveal audience-card">
+            <div class="icon-tile">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v18Z"/><path d="M6 12H4a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h2"/><path d="M18 9h2a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1h-2"/><path d="M10 6h4M10 10h4M10 14h4M10 18h4"/></svg>
+            </div>
+            <h3>Organizations</h3>
+            <p>Set up units and groups, create programs, and see org-wide participation reports. One place to run it all.</p>
+          </div>
+          <div class="reveal audience-card">
+            <div class="icon-tile">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg>
+            </div>
+            <h3>Team Leaders</h3>
+            <p>Confirm attendance for your own people. Flag what doesn't look right. Watch participation trends in your group.</p>
+          </div>
+          <div class="reveal audience-card">
+            <div class="icon-tile">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <h3>Members</h3>
+            <p>Check in with GPS or a QR scan, get reminders, and keep a record of your own attendance history.</p>
+          </div>
+        </div>
       </div>
-      <div class="feature">
-        <div class="feature-dot"></div>
-        <p>Team lead attendance confirmation</p>
-      </div>
-      <div class="feature">
-        <div class="feature-dot"></div>
-        <p>Participation reports &amp; exports</p>
-      </div>
-      <div class="feature">
-        <div class="feature-dot"></div>
-        <p>Offline &amp; manual fallback check-in</p>
-      </div>
-      <div class="feature">
-        <div class="feature-dot"></div>
-        <p>QR code &amp; invite link onboarding</p>
-      </div>
-      <div class="feature">
-        <div class="feature-dot"></div>
-        <p>Role-based access (admin, leader, member)</p>
-      </div>
-      <div class="feature">
-        <div class="feature-dot"></div>
-        <p>Real-time attendance tracking</p>
-      </div>
-      <div class="feature">
-        <div class="feature-dot"></div>
-        <p>Push notifications for events</p>
-      </div>
-    </div>
-  </section>
+    </section>
 
-  <div class="divider"></div>
+    <!-- HOW IT WORKS -->
+    <section class="how">
+      <div class="wrap">
+        <div class="reveal">
+          <h2 class="section-title rule-gold">How Rally works</h2>
+          <p class="section-sub">Eight capabilities, one mobile app. No clipboards, no spreadsheets, no guessing.</p>
+        </div>
+        <div class="feature-grid">
+          <div class="reveal feature-card">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+            <p class="label">GPS geofenced check-in</p>
+            <p class="note">On-site or it doesn't count.</p>
+          </div>
+          <div class="reveal feature-card">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="5" height="5" rx="1"/><rect x="16" y="3" width="5" height="5" rx="1"/><rect x="3" y="16" width="5" height="5" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></svg>
+            <p class="label">QR &amp; invite onboarding</p>
+            <p class="note">Scan a code, tap a link, you're in.</p>
+          </div>
+          <div class="reveal feature-card">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m16 11 2 2 4-4"/></svg>
+            <p class="label">Team-lead confirmation</p>
+            <p class="note">A human verifies, not just an app.</p>
+          </div>
+          <div class="reveal feature-card">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+            <p class="label">Reports &amp; exports</p>
+            <p class="note">Daily to yearly, ready to share.</p>
+          </div>
+          <div class="reveal feature-card">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8.82a15 15 0 0 1 4.17-2.65"/><path d="M10.66 5a15 15 0 0 1 8.17 2.17"/><path d="M2 2l20 20"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M5 12.5a10 10 0 0 1 2.5-1.9"/><path d="M19 12.5a10 10 0 0 0-3-2.5"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+            <p class="label">Offline check-in</p>
+            <p class="note">No signal? It syncs later.</p>
+          </div>
+          <div class="reveal feature-card">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+            <p class="label">Role-based dashboards</p>
+            <p class="note">Each role sees what it needs.</p>
+          </div>
+          <div class="reveal feature-card">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><circle cx="12" cy="12" r="1"/><path d="M8.46 15.54a5 5 0 0 1 0-7.08"/><path d="M4.93 19.07a10 10 0 0 1 0-14.14"/></svg>
+            <p class="label">Real-time tracking</p>
+            <p class="note">Headcounts as they happen.</p>
+          </div>
+          <div class="reveal feature-card">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+            <p class="label">Push notifications</p>
+            <p class="note">Programs and events, announced.</p>
+          </div>
+        </div>
+      </div>
+    </section>
 
-  <!-- CTA SECTION -->
-  <section id="get-started" style="text-align:center; padding-bottom:100px;">
-    <p class="section-label">Get the app</p>
-    <h2>Ready to rally?</h2>
-    <p class="section-desc" style="margin:0 auto 40px;">
-      Download Rally and join your organization today. If you have an invite code, tap below.
-    </p>
-    <div class="cta-row">
-      <a href="/join/" class="btn-primary">Join with Code</a>
-    </div>
-    <p style="margin-top:24px; font-size:13px; color:var(--muted);">justrallyit.space</p>
-  </section>
+    <!-- USE CASES -->
+    <section>
+      <div class="wrap">
+        <div class="reveal">
+          <h2 class="section-title rule-gold">One app. Every gathering.</h2>
+        </div>
+        <div class="usecase-grid">
+          <figure class="reveal usecase-card">
+            <div class="usecase-media photo">
+              <img src="/assets/member-checkin.png" alt="A member smiles at her phone as a Rally notification confirms her check-in" loading="lazy" />
+            </div>
+            <figcaption class="usecase-body">
+              <h3>Individual check-in</h3>
+              <p>Quick. Simple. Secure. One tap when you arrive — GPS proves you were there.</p>
+            </figcaption>
+          </figure>
+          <figure class="reveal usecase-card">
+            <div class="usecase-media photo">
+              <img src="/assets/community-volunteer.png" alt="A volunteer with a tablet checks in attendees at an outdoor community event" loading="lazy" />
+            </div>
+            <figcaption class="usecase-body">
+              <h3>Community Activities</h3>
+              <p>Track participation and build a stronger community. See who shows up, week after week.</p>
+            </figcaption>
+          </figure>
+          <figure class="reveal usecase-card">
+            <div class="usecase-media photo">
+              <img src="/assets/event-checkin.png" alt="Staff scan a QR code from a guest's phone at an event check-in desk" loading="lazy" />
+            </div>
+            <figcaption class="usecase-body">
+              <h3>Events &amp; Conferences</h3>
+              <p>Fast check-in at the door. Accurate numbers at the end. Memorable experiences in between.</p>
+            </figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- WHY VERIFIED -->
+    <section>
+      <div class="wrap why-grid">
+        <div class="reveal left">
+          <h2 class="section-title rule-gold">The honor system isn't a system</h2>
+          <p class="hero-desc" style="margin-top:24px;">
+            Sign-in sheets get padded. Headcounts get estimated. Self-reports get generous. When
+            attendance decides funding, staffing, or follow-up, guesses aren't good enough.
+          </p>
+          <div class="why-list">
+            <div class="why-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+              <div>
+                <p class="title">GPS proves presence</p>
+                <p class="desc">Members can only check in inside the geofence. Being there is the requirement.</p>
+              </div>
+            </div>
+            <div class="why-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m16 11 2 2 4-4"/></svg>
+              <div>
+                <p class="title">Team leads confirm it</p>
+                <p class="desc">Every record gets a second set of eyes. Leads confirm, flag, or reject.</p>
+              </div>
+            </div>
+            <div class="why-item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1Z"/><path d="m9 12 2 2 4-4"/></svg>
+              <div>
+                <p class="title">Reports hold up</p>
+                <p class="desc">Exportable daily, weekly, monthly, and yearly numbers you can stand behind.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="reveal right">
+          <img src="/assets/event-checkin.png" alt="A guest's QR code is scanned at a Rally-powered event check-in desk" loading="lazy" />
+        </div>
+      </div>
+    </section>
+
+    <!-- FINAL CTA -->
+    <section class="final-cta">
+      <div class="wrap reveal">
+        <img class="mark" src="/assets/appicon.png" alt="" aria-hidden="true" width="64" height="64" />
+        <h2>Ready to Rally?</h2>
+        <p class="sub">Most people arrive with an invite code from their organization. If that's you, you're one step away.</p>
+        <div class="cta-row">
+          <a href="/join/" class="btn btn-gold btn-xl">
+            Join with Code
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          </a>
+          <a href="/join/" class="btn btn-outline-light btn-xl">Get Started</a>
+        </div>
+        <p class="tag">Just Rally It.</p>
+      </div>
+    </section>
+  </main>
 
   <footer>
-    <p>
-      © 2026 Rally &nbsp;·&nbsp;
-      <a href="https://justrallyit.space">justrallyit.space</a> &nbsp;·&nbsp;
-      <a href="/support/">Support</a> &nbsp;·&nbsp;
-      <a href="/privacy/">Privacy Policy</a> &nbsp;·&nbsp;
-      <a href="/terms/">Terms of Service</a>
-    </p>
+    <div class="wrap footer-row">
+      <div class="footer-brand">
+        <img src="/assets/appicon.png" alt="" aria-hidden="true" />
+        <span>Rally</span>
+      </div>
+      <nav class="footer-links" aria-label="Footer">
+        <a href="/join/">Join with Code</a>
+        <a href="/support/">Support</a>
+        <a href="/privacy/">Privacy</a>
+        <a href="/terms/">Terms</a>
+      </nav>
+      <p class="copy">© <span id="year"></span> Rally · justrallyit.space</p>
+    </div>
   </footer>
 
+  <script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    var prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var revealEls = document.querySelectorAll('.reveal');
+    if (prefersReduced) {
+      revealEls.forEach(function (el) { el.classList.add('in'); });
+    } else {
+      var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('in');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+      revealEls.forEach(function (el) { observer.observe(el); });
+    }
+  </script>
+  <script src="/assets/theme.js" defer></script>
 </body>
 </html>
