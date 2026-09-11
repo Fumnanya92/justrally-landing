@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <script>(function(){try{var t=localStorage.getItem('rally-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Your Rally Ticket</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f5f6fa; --surface: #ffffff; --border: #e4e6ea;
+      --navy: #000666; --gold: #FCD400; --accent: var(--navy);
+      --text: #191c1e; --muted: #5a5c6b;
+      --success-bg: #e8f5e9; --success-text: #005313;
+      --warn-bg: #fff3e0; --warn-text: #ef6c00;
+      --danger-bg: #fdeaea; --danger-text: #b3261e;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #0a0b1a; --surface: #12132b; --border: #262842;
+        --accent: #8b93ff;
+        --text: #eef0fa; --muted: #9294b0;
+        --success-bg: #163523; --success-text: #6fe3a0;
+        --warn-bg: #3a2a12; --warn-text: #f2b355;
+        --danger-bg: #3a1416; --danger-text: #ff9a94;
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #0a0b1a; --surface: #12132b; --border: #262842;
+      --accent: #8b93ff;
+      --text: #eef0fa; --muted: #9294b0;
+      --success-bg: #163523; --success-text: #6fe3a0;
+      --warn-bg: #3a2a12; --warn-text: #f2b355;
+      --danger-bg: #3a1416; --danger-text: #ff9a94;
+    }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px 16px;
+    }
+    .wrap { max-width: 440px; width: 100%; }
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 32px 28px; text-align: center;
+      box-shadow: 0 1px 2px rgba(0,6,102,.06), 0 12px 32px -16px rgba(0,6,102,.18);
+    }
+    .logo { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 22px; font-weight: 900; letter-spacing: -1px; margin-bottom: 24px; color: var(--accent); }
+    .logo img { width: 30px; height: 30px; border-radius: 8px; }
+
+    .pill { display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; padding: 5px 12px; border-radius: 999px; margin-bottom: 14px; }
+    .pill-confirmed { background: var(--success-bg); color: var(--success-text); }
+    .pill-waitlist { background: var(--warn-bg); color: var(--warn-text); }
+    .pill-pending { background: var(--warn-bg); color: var(--warn-text); }
+
+    h1 { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
+    .meta { font-size: 14px; color: var(--muted); margin-bottom: 4px; }
+
+    .qr-box { background: #fff; border-radius: 14px; padding: 18px; display: inline-block; margin: 20px 0 8px; }
+    #qr-canvas { display: block; }
+    .offline-code { font-size: 13px; color: var(--muted); margin-top: 4px; }
+    .offline-code b { color: var(--text); font-variant-numeric: tabular-nums; letter-spacing: 1px; }
+
+    .btn {
+      display: block; width: 100%;
+      background: var(--navy); color: #fff;
+      border: none; border-radius: 12px;
+      padding: 15px; font-size: 16px; font-weight: 700;
+      cursor: pointer; text-decoration: none;
+      margin: 16px 0 10px;
+      transition: opacity .15s;
+    }
+    .btn:hover { opacity: .85; }
+    .btn:disabled { opacity: .55; cursor: not-allowed; }
+    .btn-outline {
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border); border-radius: 12px;
+      padding: 14px; font-size: 15px; font-weight: 600;
+      cursor: pointer; text-decoration: none;
+      display: block; width: 100%; margin-bottom: 10px;
+    }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+    .banner { border-radius: 12px; padding: 12px 14px; font-size: 13px; margin: 16px 0; line-height: 1.5; }
+    .banner-muted { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+    .banner-danger { background: var(--danger-bg); color: var(--danger-text); }
+    #loading { text-align: center; color: var(--muted); font-size: 14px; padding: 20px 0; }
+    [hidden] { display: none !important; }
+
+    .theme-toggle-wrap { position: fixed; top: 16px; right: 16px; z-index: 300; }
+    .theme-toggle { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); cursor: pointer; padding: 0; }
+    .theme-toggle svg { width: 18px; height: 18px; }
+    .theme-panel { position: absolute; top: calc(100% + 8px); right: 0; z-index: 300; width: 200px; padding: 20px 12px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 20px 48px -16px rgba(0,0,0,.28); }
+    .theme-panel[hidden] { display: none; }
+    .theme-track { position: relative; display: flex; justify-content: space-between; }
+    .theme-track::before { content: ''; position: absolute; left: 0; right: 0; top: 12px; height: 1px; background: var(--border); }
+    .theme-track button { position: relative; z-index: 1; background: none; border: none; cursor: pointer; font-family: inherit; font-size: 11px; font-weight: 500; color: var(--muted); padding: 28px 4px 0; }
+    .theme-track button.is-selected { font-weight: 700; color: var(--text); }
+    .theme-glyph { position: absolute; top: 0; left: 0; width: 20px; height: 20px; color: var(--gold); pointer-events: none; }
+    .theme-glyph svg { width: 20px; height: 20px; }
+  </style>
+</head>
+<body>
+  <div class="theme-toggle-wrap">
+    <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Appearance" aria-haspopup="true" aria-expanded="false"></button>
+    <div id="theme-panel" class="theme-panel" hidden>
+      <div class="theme-track">
+        <button type="button" data-theme-choice="light">Light</button>
+        <button type="button" data-theme-choice="system">Auto</button>
+        <button type="button" data-theme-choice="dark">Dark</button>
+        <span class="theme-glyph" aria-hidden="true"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="card">
+      <div class="logo"><img src="/assets/appicon.png" alt="Rally logo" width="30" height="30" />Rally</div>
+
+      <div id="loading">Loading your ticket…</div>
+
+      <div id="invalid" hidden>
+        <p class="banner banner-danger">This ticket link is invalid or has expired.</p>
+      </div>
+
+      <div id="ticket-view" hidden>
+        <div id="status-pill"></div>
+        <h1 id="event-name"></h1>
+        <div class="meta" id="event-date"></div>
+        <div class="meta" id="event-location"></div>
+
+        <div id="checked-in-banner" hidden class="banner banner-muted">You're checked in for this event. See you there!</div>
+
+        <div id="qr-section" hidden>
+          <div class="qr-box"><canvas id="qr-canvas"></canvas></div>
+          <div class="offline-code" id="offline-code-line" hidden>
+            No signal at the door? Give staff code <b id="offline-code-value"></b>
+          </div>
+        </div>
+
+        <button class="btn" id="show-qr-btn" type="button" hidden>Show my check-in QR</button>
+
+        <div id="online-access" hidden>
+          <a class="btn-outline" id="online-access-btn" href="#" target="_blank" rel="noopener">Join Online</a>
+        </div>
+
+        <button class="btn-outline" id="open-app-btn" type="button">Open in Rally App</button>
+        <div id="store-cta"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+  <script>
+    const SUPABASE_URL = 'https://hbghbextytgrpnzbsppz.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhiZ2hiZXh0eXRncnBuemJzcHB6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0MDIxMDksImV4cCI6MjA3Mzk3ODEwOX0.LXlv55Vm3liQagC-zWAeQ3pl9G_x1lL1zVmq-_uUm24';
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const token = new URLSearchParams(window.location.search).get('token');
+
+    const ANDROID_STORE_URL = 'https://play.google.com/store/apps/details?id=space.justrallyit.rally';
+    const IOS_STORE_URL = 'https://apps.apple.com/ng/app/rallyit/id6778239151';
+
+    function detectPlatform() {
+      const ua = navigator.userAgent || '';
+      if (/android/i.test(ua)) return 'android';
+      if (/iphone|ipad|ipod/i.test(ua)) return 'ios';
+      return 'other';
+    }
+
+    function storeButton(container) {
+      const platform = detectPlatform();
+      if (platform === 'other') return;
+      const a = document.createElement('a');
+      a.className = 'btn-outline';
+      a.style.textDecoration = 'none';
+      a.href = platform === 'android' ? ANDROID_STORE_URL : IOS_STORE_URL;
+      a.textContent = platform === 'android' ? 'Get it on Google Play' : 'Download on the App Store';
+      container.appendChild(a);
+    }
+
+    function fmtDate(iso) {
+      const d = new Date(iso);
+      return d.toLocaleString(undefined, {
+        weekday: 'short', month: 'short', day: 'numeric',
+        hour: 'numeric', minute: '2-digit',
+      });
+    }
+
+    let ticket = null;
+
+    async function loadTicket() {
+      if (!token) {
+        document.getElementById('loading').hidden = true;
+        document.getElementById('invalid').hidden = false;
+        return;
+      }
+      try {
+        const { data, error } = await sb.rpc('get_my_event_ticket', { p_access_token: token });
+        if (error || !data || data.length === 0) throw error || new Error('not found');
+        ticket = data[0];
+
+        document.getElementById('loading').hidden = true;
+        document.getElementById('ticket-view').hidden = false;
+
+        document.getElementById('event-name').textContent = ticket.event_name;
+        document.getElementById('event-date').textContent = fmtDate(ticket.event_start_at);
+        document.getElementById('event-location').textContent = ticket.event_location || 'Location TBA';
+
+        const pillEl = document.getElementById('status-pill');
+        if (ticket.ticket_status === 'confirmed') {
+          pillEl.innerHTML = '<span class="pill pill-confirmed">Confirmed</span>';
+        } else if (ticket.ticket_status === 'waitlisted') {
+          pillEl.innerHTML = '<span class="pill pill-waitlist">Waitlisted</span>';
+        } else if (ticket.ticket_status === 'pending_payment') {
+          pillEl.innerHTML = '<span class="pill pill-pending">Payment pending</span>';
+        }
+
+        if (ticket.check_in_status === 'checked_in') {
+          document.getElementById('checked-in-banner').hidden = false;
+        } else if (ticket.ticket_status === 'confirmed') {
+          document.getElementById('show-qr-btn').hidden = false;
+        }
+
+        if (ticket.online_access_url) {
+          document.getElementById('online-access').hidden = false;
+          document.getElementById('online-access-btn').href = ticket.online_access_url;
+        }
+
+        document.getElementById('open-app-btn').addEventListener('click', () => {
+          window.location.href = 'rally://ticket?token=' + encodeURIComponent(token);
+        });
+        storeButton(document.getElementById('store-cta'));
+      } catch (e) {
+        document.getElementById('loading').hidden = true;
+        document.getElementById('invalid').hidden = false;
+      }
+    }
+
+    document.getElementById('show-qr-btn').addEventListener('click', async (e) => {
+      const btn = e.currentTarget;
+      btn.disabled = true;
+      btn.textContent = 'Loading…';
+      try {
+        const { data: checkinToken, error } = await sb.rpc('reissue_checkin_token', { p_access_token: token });
+        if (error) throw error;
+        btn.hidden = true;
+        const section = document.getElementById('qr-section');
+        section.hidden = false;
+        await QRCode.toCanvas(document.getElementById('qr-canvas'), 'RALLYTIX:' + checkinToken, {
+          width: 200,
+          color: { dark: '#000666', light: '#ffffff' },
+        });
+        if (ticket && ticket.offline_code) {
+          document.getElementById('offline-code-value').textContent = ticket.offline_code;
+          document.getElementById('offline-code-line').hidden = false;
+        }
+      } catch (e) {
+        btn.disabled = false;
+        btn.textContent = 'Show my check-in QR';
+      }
+    });
+
+    loadTicket();
+  </script>
+  <script src="/assets/theme.js" defer></script>
+</body>
+</html>

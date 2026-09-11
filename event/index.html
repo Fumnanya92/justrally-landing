@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <script>(function(){try{var t=localStorage.getItem('rally-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rally Event</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f5f6fa; --surface: #ffffff; --border: #e4e6ea;
+      --navy: #000666; --gold: #FCD400; --accent: var(--navy);
+      --text: #191c1e; --muted: #5a5c6b;
+      --success-bg: #e8f5e9; --success-text: #005313;
+      --warn-bg: #fff3e0; --warn-text: #ef6c00;
+      --danger-bg: #fdeaea; --danger-text: #b3261e;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #0a0b1a; --surface: #12132b; --border: #262842;
+        --accent: #8b93ff;
+        --text: #eef0fa; --muted: #9294b0;
+        --success-bg: #163523; --success-text: #6fe3a0;
+        --warn-bg: #3a2a12; --warn-text: #f2b355;
+        --danger-bg: #3a1416; --danger-text: #ff9a94;
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #0a0b1a; --surface: #12132b; --border: #262842;
+      --accent: #8b93ff;
+      --text: #eef0fa; --muted: #9294b0;
+      --success-bg: #163523; --success-text: #6fe3a0;
+      --warn-bg: #3a2a12; --warn-text: #f2b355;
+      --danger-bg: #3a1416; --danger-text: #ff9a94;
+    }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px 16px;
+    }
+    .wrap { max-width: 480px; width: 100%; }
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 32px 28px;
+      box-shadow: 0 1px 2px rgba(0,6,102,.06), 0 12px 32px -16px rgba(0,6,102,.18);
+    }
+    .logo { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 22px; font-weight: 900; letter-spacing: -1px; margin-bottom: 28px; color: var(--accent); }
+    .logo img { width: 30px; height: 30px; border-radius: 8px; }
+
+    .org-name { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); margin-bottom: 6px; }
+    h1 { font-size: 22px; font-weight: 800; margin-bottom: 16px; line-height: 1.25; }
+
+    .meta-row { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; color: var(--muted); margin-bottom: 8px; }
+    .meta-icon { width: 18px; flex-shrink: 0; }
+    .description { font-size: 14px; color: var(--muted); line-height: 1.6; margin: 16px 0; }
+
+    .pill { display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; padding: 5px 12px; border-radius: 999px; margin-bottom: 14px; }
+    .pill-open { background: var(--success-bg); color: var(--success-text); }
+    .pill-waitlist { background: var(--warn-bg); color: var(--warn-text); }
+    .pill-closed { background: var(--danger-bg); color: var(--danger-text); }
+
+    .divider { height: 1px; background: var(--border); margin: 22px 0; }
+
+    label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+    .field { margin-bottom: 16px; }
+    input[type="text"], input[type="email"], input[type="tel"], textarea, select {
+      width: 100%; font-family: inherit; font-size: 15px;
+      background: var(--bg); color: var(--text);
+      border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 14px;
+    }
+    textarea { resize: vertical; min-height: 70px; }
+    .choice-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 14px; }
+    .choice-row input { width: auto; }
+    .req { color: var(--danger-text); }
+
+    .btn {
+      display: block; width: 100%;
+      background: var(--navy); color: #fff;
+      border: none; border-radius: 12px;
+      padding: 15px; font-size: 16px; font-weight: 700;
+      cursor: pointer; text-decoration: none; text-align: center;
+      margin-bottom: 12px;
+      transition: opacity .15s;
+    }
+    .btn:hover { opacity: .85; }
+    .btn:disabled { opacity: .55; cursor: not-allowed; }
+    .btn-outline {
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border); border-radius: 12px;
+      padding: 14px; font-size: 15px; font-weight: 600;
+      cursor: pointer; text-decoration: none;
+      margin-bottom: 12px;
+      display: block; width: 100%; text-align: center;
+    }
+    .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+    .banner { border-radius: 12px; padding: 12px 14px; font-size: 13px; margin-bottom: 16px; line-height: 1.5; }
+    .banner-danger { background: var(--danger-bg); color: var(--danger-text); }
+    .banner-muted { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+
+    .confirm-icon { width: 56px; height: 56px; border-radius: 50%; background: var(--success-bg); color: var(--success-text); display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 16px; }
+    .center { text-align: center; }
+    [hidden] { display: none !important; }
+    #loading { text-align: center; color: var(--muted); font-size: 14px; padding: 20px 0; }
+
+    /* Theme toggle — matches join/index.html exactly */
+    .theme-toggle-wrap { position: fixed; top: 16px; right: 16px; z-index: 300; }
+    .theme-toggle { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); cursor: pointer; padding: 0; }
+    .theme-toggle svg { width: 18px; height: 18px; }
+    .theme-panel { position: absolute; top: calc(100% + 8px); right: 0; z-index: 300; width: 200px; padding: 20px 12px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 20px 48px -16px rgba(0,0,0,.28); }
+    .theme-panel[hidden] { display: none; }
+    .theme-track { position: relative; display: flex; justify-content: space-between; }
+    .theme-track::before { content: ''; position: absolute; left: 0; right: 0; top: 12px; height: 1px; background: var(--border); }
+    .theme-track button { position: relative; z-index: 1; background: none; border: none; cursor: pointer; font-family: inherit; font-size: 11px; font-weight: 500; color: var(--muted); padding: 28px 4px 0; }
+    .theme-track button.is-selected { font-weight: 700; color: var(--text); }
+    .theme-glyph { position: absolute; top: 0; left: 0; width: 20px; height: 20px; color: var(--gold); pointer-events: none; }
+    .theme-glyph svg { width: 20px; height: 20px; }
+  </style>
+</head>
+<body>
+  <div class="theme-toggle-wrap">
+    <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Appearance" aria-haspopup="true" aria-expanded="false"></button>
+    <div id="theme-panel" class="theme-panel" hidden>
+      <div class="theme-track">
+        <button type="button" data-theme-choice="light">Light</button>
+        <button type="button" data-theme-choice="system">Auto</button>
+        <button type="button" data-theme-choice="dark">Dark</button>
+        <span class="theme-glyph" aria-hidden="true"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="card">
+      <div class="logo"><img src="/assets/appicon.png" alt="Rally logo" width="30" height="30" />Rally</div>
+
+      <div id="loading">Loading event…</div>
+
+      <div id="not-found" hidden>
+        <p class="banner banner-danger">This event link is invalid, or the event isn't open for registration.</p>
+      </div>
+
+      <div id="event-view" hidden>
+        <div class="org-name" id="org-name"></div>
+        <h1 id="event-name"></h1>
+        <div id="status-pill"></div>
+        <div class="meta-row"><span class="meta-icon">📅</span><span id="event-date"></span></div>
+        <div class="meta-row"><span class="meta-icon">📍</span><span id="event-location"></span></div>
+        <div class="meta-row" id="spots-row" hidden><span class="meta-icon">🎟️</span><span id="event-spots"></span></div>
+        <p class="description" id="event-description" hidden></p>
+
+        <button class="btn-outline" id="open-app-btn" type="button">Open in Rally App</button>
+        <div id="store-cta" hidden></div>
+
+        <div class="divider"></div>
+
+        <form id="reg-form">
+          <div id="invite-code-field" class="field" hidden>
+            <label for="f-invite">Invite code <span class="req">*</span></label>
+            <input type="text" id="f-invite" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="f-first">First name <span class="req">*</span></label>
+            <input type="text" id="f-first" required autocomplete="given-name" />
+          </div>
+          <div class="field">
+            <label for="f-last">Last name <span class="req">*</span></label>
+            <input type="text" id="f-last" required autocomplete="family-name" />
+          </div>
+          <div class="field">
+            <label for="f-email">Email <span class="req">*</span></label>
+            <input type="email" id="f-email" required autocomplete="email" />
+          </div>
+          <div class="field">
+            <label for="f-phone">Phone</label>
+            <input type="tel" id="f-phone" autocomplete="tel" />
+          </div>
+
+          <div id="custom-fields"></div>
+
+          <p class="banner banner-danger" id="form-error" hidden></p>
+          <button class="btn" id="submit-btn" type="submit">Register</button>
+        </form>
+      </div>
+
+      <div id="confirm-view" hidden>
+        <div class="confirm-icon">✓</div>
+        <h1 class="center" id="confirm-title">You're in!</h1>
+        <p class="banner banner-muted center" id="confirm-body"></p>
+        <a class="btn" id="view-ticket-btn" href="#">View my ticket</a>
+        <p class="banner banner-muted" style="margin-top:8px;">
+          We also emailed your confirmation. Don't have Rally yet? You can
+          manage your ticket from this page, or download the app any time.
+        </p>
+        <div id="confirm-store-cta"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script>
+    const SUPABASE_URL = 'https://hbghbextytgrpnzbsppz.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhiZ2hiZXh0eXRncnBuemJzcHB6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0MDIxMDksImV4cCI6MjA3Mzk3ODEwOX0.LXlv55Vm3liQagC-zWAeQ3pl9G_x1lL1zVmq-_uUm24';
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const pathParts = window.location.pathname.split('/').filter(Boolean);
+    const eventId = pathParts.length >= 2 ? pathParts[1] : null;
+    const params = new URLSearchParams(window.location.search);
+    const inviteCodeFromLink = params.get('code');
+
+    const ANDROID_STORE_URL = 'https://play.google.com/store/apps/details?id=space.justrallyit.rally';
+    const IOS_STORE_URL = 'https://apps.apple.com/ng/app/rallyit/id6778239151';
+
+    function detectPlatform() {
+      const ua = navigator.userAgent || '';
+      if (/android/i.test(ua)) return 'android';
+      if (/iphone|ipad|ipod/i.test(ua)) return 'ios';
+      return 'other';
+    }
+
+    function storeButton(container, label) {
+      const platform = detectPlatform();
+      if (platform === 'other') return;
+      const a = document.createElement('a');
+      a.className = 'btn-outline';
+      a.style.textDecoration = 'none';
+      a.href = platform === 'android' ? ANDROID_STORE_URL : IOS_STORE_URL;
+      a.textContent = platform === 'android' ? 'Get it on Google Play' : 'Download on the App Store';
+      container.hidden = false;
+      container.appendChild(a);
+    }
+
+    let customFields = [];
+    let eventVisibility = null;
+
+    function fmtDate(iso) {
+      const d = new Date(iso);
+      return d.toLocaleString(undefined, {
+        weekday: 'short', month: 'short', day: 'numeric',
+        hour: 'numeric', minute: '2-digit',
+      });
+    }
+
+    async function loadEvent() {
+      if (!eventId) {
+        document.getElementById('loading').hidden = true;
+        document.getElementById('not-found').hidden = false;
+        return;
+      }
+      try {
+        const { data, error } = await sb.rpc('get_public_event', {
+          p_event_id: eventId,
+          p_invite_code: inviteCodeFromLink || null,
+        });
+        if (error || !data || data.length === 0) throw error || new Error('not found');
+        const ev = data[0];
+        eventVisibility = ev.visibility;
+
+        document.getElementById('loading').hidden = true;
+        document.getElementById('event-view').hidden = false;
+
+        document.getElementById('org-name').textContent = ev.org_name || 'Rally';
+        document.getElementById('event-name').textContent = ev.name;
+        document.getElementById('event-date').textContent = fmtDate(ev.start_at);
+        document.getElementById('event-location').textContent = ev.location || 'Location TBA';
+
+        const pillEl = document.getElementById('status-pill');
+        if (ev.registration_status !== 'open') {
+          pillEl.innerHTML = '<span class="pill pill-closed">Registration closed</span>';
+        } else if (ev.capacity != null && ev.spots_remaining === 0) {
+          pillEl.innerHTML = '<span class="pill pill-waitlist">Waitlist only</span>';
+        } else {
+          pillEl.innerHTML = '<span class="pill pill-open">Registration open</span>';
+        }
+
+        if (ev.capacity != null) {
+          document.getElementById('spots-row').hidden = false;
+          document.getElementById('event-spots').textContent =
+            ev.spots_remaining > 0 ? ev.spots_remaining + ' spot' + (ev.spots_remaining === 1 ? '' : 's') + ' left' : 'Waitlist open';
+        }
+
+        if (ev.description) {
+          const d = document.getElementById('event-description');
+          d.textContent = ev.description;
+          d.hidden = false;
+        }
+
+        if (ev.visibility === 'invite_only') {
+          document.getElementById('invite-code-field').hidden = false;
+          if (inviteCodeFromLink) document.getElementById('f-invite').value = inviteCodeFromLink;
+        }
+
+        document.getElementById('open-app-btn').addEventListener('click', () => {
+          window.location.href = 'rally://event/' + eventId;
+        });
+        storeButton(document.getElementById('store-cta'), 'app');
+
+        // Custom registration questions, if the organizer added any.
+        try {
+          const { data: fields } = await sb.rpc('get_event_registration_fields', {
+            p_event_id: eventId,
+            p_invite_code: inviteCodeFromLink || null,
+          });
+          customFields = fields || [];
+          renderCustomFields();
+        } catch (_) { /* non-fatal — form still works without custom questions */ }
+
+        if (ev.registration_status !== 'open') {
+          document.getElementById('reg-form').hidden = true;
+        }
+      } catch (e) {
+        document.getElementById('loading').hidden = true;
+        document.getElementById('not-found').hidden = false;
+      }
+    }
+
+    function renderCustomFields() {
+      const wrap = document.getElementById('custom-fields');
+      wrap.innerHTML = '';
+      customFields.forEach((f) => {
+        const field = document.createElement('div');
+        field.className = 'field';
+        const req = f.required ? ' <span class="req">*</span>' : '';
+        let inputHtml = '';
+        if (f.field_type === 'short_text') {
+          inputHtml = `<input type="text" data-field-id="${f.id}" ${f.required ? 'required' : ''} />`;
+        } else if (f.field_type === 'long_text') {
+          inputHtml = `<textarea data-field-id="${f.id}" ${f.required ? 'required' : ''}></textarea>`;
+        } else if (f.field_type === 'checkbox') {
+          inputHtml = `<div class="choice-row"><input type="checkbox" data-field-id="${f.id}" data-field-type="checkbox" ${f.required ? 'required' : ''} /> <span>${f.label}</span></div>`;
+        } else if (f.field_type === 'single_choice' || f.field_type === 'multi_choice') {
+          const opts = Array.isArray(f.options) ? f.options : [];
+          const inputType = f.field_type === 'single_choice' ? 'radio' : 'checkbox';
+          inputHtml = opts.map((o) =>
+            `<div class="choice-row"><input type="${inputType}" name="field-${f.id}" data-field-id="${f.id}" data-field-type="${f.field_type}" value="${o}" /> <span>${o}</span></div>`
+          ).join('');
+        }
+        if (f.field_type === 'checkbox') {
+          field.innerHTML = inputHtml;
+        } else {
+          field.innerHTML = `<label>${f.label}${req}</label>${inputHtml}`;
+        }
+        wrap.appendChild(field);
+      });
+    }
+
+    function collectCustomAnswers() {
+      const answers = {};
+      customFields.forEach((f) => {
+        if (f.field_type === 'short_text' || f.field_type === 'long_text') {
+          const el = document.querySelector(`[data-field-id="${f.id}"]`);
+          if (el && el.value.trim()) answers[f.id] = el.value.trim();
+        } else if (f.field_type === 'checkbox') {
+          const el = document.querySelector(`[data-field-id="${f.id}"]`);
+          answers[f.id] = el && el.checked ? 'true' : 'false';
+        } else if (f.field_type === 'single_choice') {
+          const el = document.querySelector(`input[name="field-${f.id}"]:checked`);
+          if (el) answers[f.id] = el.value;
+        } else if (f.field_type === 'multi_choice') {
+          const els = document.querySelectorAll(`input[data-field-id="${f.id}"]:checked`);
+          if (els.length) answers[f.id] = Array.from(els).map((e) => e.value);
+        }
+      });
+      return Object.keys(answers).length ? answers : null;
+    }
+
+    function friendlyError(msg) {
+      const map = {
+        email_required: 'Enter a valid email address.',
+        registration_closed: 'Registration is closed for this event.',
+        already_registered: 'This email is already registered for this event.',
+        invalid_invite_code: 'That invite code isn\'t valid or has expired.',
+        membership_required: 'This event is only open to organization members — open it in the Rally app while signed in.',
+        missing_required_field: 'Please answer all required questions.',
+      };
+      for (const key in map) {
+        if (msg && msg.includes(key)) return map[key];
+      }
+      return 'Something went wrong. Please try again.';
+    }
+
+    document.getElementById('reg-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errEl = document.getElementById('form-error');
+      errEl.hidden = true;
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      btn.textContent = 'Registering…';
+      try {
+        const { data, error } = await sb.rpc('register_for_public_event', {
+          p_event_id: eventId,
+          p_first_name: document.getElementById('f-first').value.trim(),
+          p_last_name: document.getElementById('f-last').value.trim(),
+          p_email: document.getElementById('f-email').value.trim(),
+          p_phone: document.getElementById('f-phone').value.trim() || null,
+          p_invite_code: document.getElementById('f-invite').value.trim() || null,
+          p_custom_answers: collectCustomAnswers(),
+        });
+        if (error) throw error;
+        const result = data[0];
+        showConfirmation(result);
+      } catch (err) {
+        errEl.textContent = friendlyError(err && err.message);
+        errEl.hidden = false;
+        btn.disabled = false;
+        btn.textContent = 'Register';
+      }
+    });
+
+    function showConfirmation(result) {
+      document.getElementById('event-view').hidden = true;
+      document.getElementById('confirm-view').hidden = false;
+      const title = document.getElementById('confirm-title');
+      const body = document.getElementById('confirm-body');
+      if (result.ticket_status === 'waitlisted') {
+        title.textContent = "You're on the waitlist";
+        body.textContent = 'We\'ll email you if a spot opens up.';
+      } else if (result.ticket_status === 'pending_payment') {
+        title.textContent = 'Almost there';
+        body.textContent = 'Finish payment in the Rally app to confirm your spot.';
+      } else {
+        title.textContent = "You're in!";
+        body.textContent = 'Your spot is confirmed. We emailed you a copy of your ticket.';
+      }
+      document.getElementById('view-ticket-btn').href =
+        '/ticket?token=' + encodeURIComponent(result.access_token);
+      storeButton(document.getElementById('confirm-store-cta'), 'app');
+    }
+
+    loadEvent();
+  </script>
+  <script src="/assets/theme.js" defer></script>
+</body>
+</html>

@@ -6,7 +6,9 @@
         "appIDs": ["9Z284L63BK.space.justrallyit.rally"],
         "components": [
           { "/": "/join/*", "comment": "Invite links" },
-          { "/": "/login-callback", "comment": "Auth callback" }
+          { "/": "/login-callback", "comment": "Auth callback" },
+          { "/": "/event/*", "comment": "Public ticketed event" },
+          { "/": "/ticket", "comment": "Mailed event ticket" }
         ]
       }
     ]
