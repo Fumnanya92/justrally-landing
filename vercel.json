@@ -1,7 +1,7 @@
 {
   "rewrites": [
     { "source": "/join/:code", "destination": "/join/index.html" },
-    { "source": "/event/:id", "destination": "/event/index.html" }
+    { "source": "/e/:code", "destination": "/e/index.html" }
   ],
   "headers": [
     {

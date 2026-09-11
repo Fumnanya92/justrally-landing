@@ -7,7 +7,7 @@
         "components": [
           { "/": "/join/*", "comment": "Invite links" },
           { "/": "/login-callback", "comment": "Auth callback" },
-          { "/": "/event/*", "comment": "Public ticketed event" },
+          { "/": "/e/*", "comment": "Public ticketed event (short share code)" },
           { "/": "/ticket", "comment": "Mailed event ticket" }
         ]
       }

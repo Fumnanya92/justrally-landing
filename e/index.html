@@ -209,9 +209,12 @@
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const pathParts = window.location.pathname.split('/').filter(Boolean);
-    const eventId = pathParts.length >= 2 ? pathParts[1] : null;
+    const shareCode = pathParts.length >= 2 ? pathParts[1] : null;
     const params = new URLSearchParams(window.location.search);
     const inviteCodeFromLink = params.get('code');
+    // Resolved from the share code once the event loads — everything after
+    // that (custom fields, registration) needs the real event id.
+    let eventId = null;
 
     const ANDROID_STORE_URL = 'https://play.google.com/store/apps/details?id=space.justrallyit.rally';
     const IOS_STORE_URL = 'https://apps.apple.com/ng/app/rallyit/id6778239151';
@@ -247,18 +250,19 @@
     }
 
     async function loadEvent() {
-      if (!eventId) {
+      if (!shareCode) {
         document.getElementById('loading').hidden = true;
         document.getElementById('not-found').hidden = false;
         return;
       }
       try {
-        const { data, error } = await sb.rpc('get_public_event', {
-          p_event_id: eventId,
+        const { data, error } = await sb.rpc('get_public_event_by_code', {
+          p_share_code: shareCode,
           p_invite_code: inviteCodeFromLink || null,
         });
         if (error || !data || data.length === 0) throw error || new Error('not found');
         const ev = data[0];
+        eventId = ev.event_id;
         eventVisibility = ev.visibility;
 
         document.getElementById('loading').hidden = true;
@@ -296,7 +300,7 @@
         }
 
         document.getElementById('open-app-btn').addEventListener('click', () => {
-          window.location.href = 'rally://event/' + eventId;
+          window.location.href = 'rally://e/' + shareCode;
         });
         storeButton(document.getElementById('store-cta'), 'app');
 
