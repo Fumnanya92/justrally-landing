@@ -8,7 +8,8 @@
           { "/": "/join/*", "comment": "Invite links" },
           { "/": "/login-callback", "comment": "Auth callback" },
           { "/": "/e/*", "comment": "Public ticketed event (short share code)" },
-          { "/": "/ticket", "comment": "Mailed event ticket" }
+          { "/": "/ticket", "comment": "Mailed event ticket" },
+          { "/": "/open", "comment": "Generic open-app link, e.g. email CTAs" }
         ]
       }
     ]

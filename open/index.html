@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <script>(function(){try{var t=localStorage.getItem('rally-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Open Rally</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f5f6fa; --surface: #ffffff; --border: #e4e6ea;
+      --navy: #000666; --gold: #FCD400; --accent: var(--navy);
+      --text: #191c1e; --muted: #5a5c6b;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #0a0b1a; --surface: #12132b; --border: #262842;
+        --accent: #8b93ff;
+        --text: #eef0fa; --muted: #9294b0;
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #0a0b1a; --surface: #12132b; --border: #262842;
+      --accent: #8b93ff;
+      --text: #eef0fa; --muted: #9294b0;
+    }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 40px 32px;
+      max-width: 420px; width: 100%; text-align: center;
+      box-shadow: 0 1px 2px rgba(0,6,102,.06), 0 12px 32px -16px rgba(0,6,102,.18);
+    }
+    .logo { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 24px; font-weight: 900; letter-spacing: -1px; margin-bottom: 20px; color: var(--accent); }
+    .logo img { width: 32px; height: 32px; border-radius: 9px; }
+    h1 { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+    .subtitle { color: var(--muted); font-size: 15px; margin-bottom: 32px; line-height: 1.5; }
+    .btn {
+      display: block; width: 100%;
+      background: var(--navy); color: #fff;
+      border: none; border-radius: 12px;
+      padding: 15px; font-size: 16px; font-weight: 700;
+      cursor: pointer; text-decoration: none;
+      margin-bottom: 12px;
+      transition: opacity .15s;
+    }
+    .btn:hover { opacity: .85; }
+    #open-status { font-size: 13px; color: var(--muted); margin-top: 8px; min-height: 20px; }
+    #store-cta { display: none; margin-top: 12px; }
+
+    .theme-toggle-wrap { position: fixed; top: 16px; right: 16px; z-index: 300; }
+    .theme-toggle { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); cursor: pointer; padding: 0; }
+    .theme-toggle svg { width: 18px; height: 18px; }
+    .theme-panel { position: absolute; top: calc(100% + 8px); right: 0; z-index: 300; width: 200px; padding: 20px 12px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 20px 48px -16px rgba(0,0,0,.28); }
+    .theme-panel[hidden] { display: none; }
+    .theme-track { position: relative; display: flex; justify-content: space-between; }
+    .theme-track::before { content: ''; position: absolute; left: 0; right: 0; top: 12px; height: 1px; background: var(--border); }
+    .theme-track button { position: relative; z-index: 1; background: none; border: none; cursor: pointer; font-family: inherit; font-size: 11px; font-weight: 500; color: var(--muted); padding: 28px 4px 0; }
+    .theme-track button.is-selected { font-weight: 700; color: var(--text); }
+    .theme-glyph { position: absolute; top: 0; left: 0; width: 20px; height: 20px; color: var(--gold); pointer-events: none; }
+    .theme-glyph svg { width: 20px; height: 20px; }
+  </style>
+</head>
+<body>
+  <div class="theme-toggle-wrap">
+    <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Appearance" aria-haspopup="true" aria-expanded="false"></button>
+    <div id="theme-panel" class="theme-panel" hidden>
+      <div class="theme-track">
+        <button type="button" data-theme-choice="light">Light</button>
+        <button type="button" data-theme-choice="system">Auto</button>
+        <button type="button" data-theme-choice="dark">Dark</button>
+        <span class="theme-glyph" aria-hidden="true"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="logo"><img src="/assets/appicon.png" alt="Rally logo" width="32" height="32" />Rally</div>
+    <h1>Open Rally</h1>
+    <p class="subtitle">If you have the app installed, tap below to jump right in.</p>
+
+    <button class="btn" id="open-app-btn" onclick="openApp()">Open Rally App</button>
+    <div id="open-status"></div>
+
+    <div id="store-cta"></div>
+  </div>
+
+  <script>
+    const ANDROID_STORE_URL = 'https://play.google.com/store/apps/details?id=space.justrallyit.rally';
+    const IOS_STORE_URL = 'https://apps.apple.com/ng/app/rallyit/id6778239151';
+
+    function detectPlatform() {
+      const ua = navigator.userAgent || '';
+      if (/android/i.test(ua)) return 'android';
+      if (/iphone|ipad|ipod/i.test(ua)) return 'ios';
+      return 'other';
+    }
+
+    const platform = detectPlatform();
+    if (platform !== 'other') {
+      const storeCta = document.getElementById('store-cta');
+      const a = document.createElement('a');
+      a.className = 'btn';
+      a.style.background = 'transparent';
+      a.style.color = 'var(--text)';
+      a.style.border = '1px solid var(--border)';
+      a.href = platform === 'android' ? ANDROID_STORE_URL : IOS_STORE_URL;
+      a.textContent = platform === 'android' ? 'Get it on Google Play' : 'Download on the App Store';
+      storeCta.appendChild(a);
+      storeCta.style.display = 'block';
+    }
+
+    function openApp() {
+      const status = document.getElementById('open-status');
+      status.textContent = 'Opening Rally…';
+      window.location.href = 'rally://open';
+      setTimeout(() => {
+        status.textContent = "App not opening? Download it below, or you're already signed in on this device.";
+      }, 1800);
+    }
+  </script>
+  <script src="/assets/theme.js" defer></script>
+</body>
+</html>
