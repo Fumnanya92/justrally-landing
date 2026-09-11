@@ -160,6 +160,21 @@
     }
     .email-link:hover { opacity: .9; transform: translateY(-1px); text-decoration: none; }
 
+    .whatsapp-link {
+      display: inline-block;
+      background: #25D366;
+      color: #06301b;
+      border-radius: 10px;
+      padding: 12px 18px;
+      font-size: 15px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: opacity .15s, transform .15s;
+      overflow-wrap: anywhere;
+    }
+    .whatsapp-link:hover { opacity: .9; transform: translateY(-1px); text-decoration: none; }
+    .contact-links { display: flex; flex-wrap: wrap; gap: 12px; }
+
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -316,7 +331,10 @@
         Email us with a short description of the issue, the email address on your Rally
         account, and your organization name if you are part of one.
       </p>
-      <a href="mailto:fynkotechnologies@gmail.com?subject=Rally%20Support%20Request" class="email-link">fynkotechnologies@gmail.com</a>
+      <div class="contact-links">
+        <a href="mailto:fynkotechnologies@gmail.com?subject=Rally%20Support%20Request" class="email-link">fynkotechnologies@gmail.com</a>
+        <a href="https://wa.me/2348167322603" class="whatsapp-link" target="_blank" rel="noopener">WhatsApp +234 816 732 2603</a>
+      </div>
     </section>
 
     <div class="grid">

@@ -337,7 +337,7 @@
             </div>
           </div>
         </div>
-        <a href="/join/" class="btn btn-gold btn-sm">Join with Code</a>
+        <a href="#" class="btn btn-gold btn-sm js-download-btn">Download</a>
       </div>
     </div>
   </header>
@@ -354,13 +354,12 @@
             and turns it all into reports your organization can act on.
           </p>
           <div class="cta-row">
-            <a href="/join/" class="btn btn-navy btn-lg">
-              Get Started
+            <a href="#" class="btn btn-navy btn-lg js-download-btn">
+              Download
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
             </a>
-            <a href="/join/" class="btn btn-outline-navy btn-lg">Join with Code</a>
           </div>
-          <p class="hero-note">Have an invite from your organization? Join with Code is the fastest way in.</p>
+          <p class="hero-note">Have an invite code from your organization? Download Rally, then enter it from inside the app.</p>
         </div>
         <div class="hero-img-wrap">
           <img src="/assets/hero-checkin.png" alt="A team member welcomes guests as a Rally check-in confirmation appears on screen" width="1536" height="1024" />
@@ -534,13 +533,12 @@
       <div class="wrap reveal">
         <img class="mark" src="/assets/appicon.png" alt="" aria-hidden="true" width="64" height="64" />
         <h2>Ready to Rally?</h2>
-        <p class="sub">Most people arrive with an invite code from their organization. If that's you, you're one step away.</p>
+        <p class="sub">Available on iOS and Android. Download Rally to get started, or to enter an invite code from your organization.</p>
         <div class="cta-row">
-          <a href="/join/" class="btn btn-gold btn-xl">
-            Join with Code
+          <a href="#" class="btn btn-gold btn-xl js-download-btn">
+            Download
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
           </a>
-          <a href="/join/" class="btn btn-outline-light btn-xl">Get Started</a>
         </div>
         <p class="tag">Just Rally It.</p>
       </div>
@@ -554,7 +552,7 @@
         <span>Rally</span>
       </div>
       <nav class="footer-links" aria-label="Footer">
-        <a href="/join/">Join with Code</a>
+        <a href="#" class="js-download-btn">Download</a>
         <a href="/support/">Support</a>
         <a href="/privacy/">Privacy</a>
         <a href="/terms/">Terms</a>
@@ -565,6 +563,22 @@
 
   <script>
     document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Same store URLs and platform-detection approach as /join/ — the only
+    // web CTA now is "Download", so every one of these buttons has to send
+    // people to the right store on its own instead of a code-entry page.
+    (function () {
+      var ANDROID_STORE_URL = 'https://play.google.com/store/apps/details?id=space.justrallyit.rally';
+      var IOS_STORE_URL = 'https://apps.apple.com/ng/app/rallyit/id6778239151';
+      var ua = navigator.userAgent || '';
+      var isIOS = /iphone|ipad|ipod/i.test(ua);
+      var url = isIOS ? IOS_STORE_URL : ANDROID_STORE_URL;
+      document.querySelectorAll('.js-download-btn').forEach(function (el) {
+        el.href = url;
+        el.target = '_blank';
+        el.rel = 'noopener';
+      });
+    })();
 
     var prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var revealEls = document.querySelectorAll('.reveal');
