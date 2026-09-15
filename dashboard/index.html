@@ -16,7 +16,6 @@
       --bg: #f5f6fa; --surface: #ffffff; --surface-2: #f8f9fc; --border: #ececf3;
       --navy: #000666; --gold: #FCD400; --accent: var(--navy);
       --text: #191c1e; --muted: #86889a; --danger: #b3261e; --good: #1e7a34; --warn: #ef6c00;
-      --sidebar-bg: #0b0c1f; --sidebar-text: #c7c9e0; --sidebar-active: #171935;
       --shadow: 0 1px 2px rgba(20,20,50,.03), 0 10px 28px -14px rgba(20,20,50,.10);
       --icon-tint: rgba(0,6,102,.08);
     }
@@ -56,26 +55,34 @@
     #login-error { color: var(--danger); font-size: 13px; margin-top: 12px; min-height: 18px; }
 
     /* ---------- App shell ---------- */
+    /* Sidebar is a light panel matching the rest of the page — not a dark
+       admin-drawer — with the active section shown as a solid filled pill
+       (icon+label on brand navy, white text), same as an inactive one
+       shown as plain muted text with no fill. */
     #app-view { display: flex; min-height: 100vh; }
     .sidebar {
-      width: 232px; flex-shrink: 0; background: var(--sidebar-bg); color: var(--sidebar-text);
-      padding: 22px 14px; display: flex; flex-direction: column;
+      width: 232px; flex-shrink: 0; background: var(--surface); color: var(--text);
+      border-right: 1px solid var(--border);
+      padding: 24px 16px; display: flex; flex-direction: column;
     }
-    .sidebar .logo { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 900; color: #fff; padding: 6px 10px 26px; }
-    .sidebar .logo .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--gold); }
+    .sidebar .logo { display: flex; align-items: center; gap: 9px; font-size: 17px; font-weight: 800; color: var(--text); padding: 6px 8px 28px; }
+    .sidebar .logo .mark {
+      width: 26px; height: 26px; border-radius: 8px; background: var(--navy); color: #fff;
+      display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 900; flex-shrink: 0;
+    }
     .nav-item {
-      display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 10px;
-      font-size: 14px; font-weight: 600; cursor: pointer; margin-bottom: 2px; color: var(--sidebar-text);
+      display: flex; align-items: center; gap: 11px; padding: 11px 14px; border-radius: 11px;
+      font-size: 14px; font-weight: 600; cursor: pointer; margin-bottom: 3px; color: var(--muted);
     }
-    .nav-item:hover { background: rgba(255,255,255,.05); }
-    .nav-item.active { background: var(--sidebar-active); color: #fff; }
-    .nav-item .ic { width: 18px; text-align: center; }
+    .nav-item:hover { background: var(--surface-2); }
+    .nav-item.active { background: var(--navy); color: #fff; }
+    .nav-item .ic { width: 18px; text-align: center; opacity: .85; }
     .sidebar .spacer { flex: 1; }
     .sidebar .signout {
-      padding: 11px 12px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer;
-      color: var(--sidebar-text); border: 1px solid rgba(255,255,255,.1);
+      display: flex; align-items: center; gap: 11px; padding: 11px 14px; border-radius: 11px;
+      font-size: 14px; font-weight: 600; cursor: pointer; color: var(--muted);
     }
-    .sidebar .signout:hover { background: rgba(255,255,255,.05); }
+    .sidebar .signout:hover { background: var(--surface-2); }
 
     .main { flex: 1; min-width: 0; padding: 32px 36px 60px; }
     .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; flex-wrap: wrap; gap: 14px; }
@@ -83,9 +90,8 @@
     .topbar .sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
     .topbar-right { display: flex; align-items: center; gap: 12px; }
     .period-select {
-      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
-      padding: 9px 14px; font-size: 13px; font-family: inherit; color: var(--text); cursor: pointer;
-      box-shadow: var(--shadow);
+      background: var(--surface-2); border: none; border-radius: 999px;
+      padding: 9px 16px; font-size: 13px; font-weight: 600; font-family: inherit; color: var(--text); cursor: pointer;
     }
     .user-chip {
       display: flex; align-items: center; gap: 9px; background: var(--surface);
@@ -123,40 +129,63 @@
       background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow);
       border-radius: 20px; padding: 24px; margin-bottom: 20px;
     }
-    .card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); font-weight: 700; margin-bottom: 18px; }
+    .card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: 10px; }
+    .card h2 { font-size: 15.5px; color: var(--text); font-weight: 700; }
+    .card .card-chip {
+      background: var(--surface-2); border: none; border-radius: 999px;
+      padding: 6px 13px; font-size: 12px; font-weight: 600; color: var(--muted);
+      font-family: inherit; cursor: pointer; display: flex; align-items: center; gap: 5px;
+    }
 
+    /* Stat cards: label + a small trailing chevron on the top row (no
+       colored icon tile), a large bold value, then either a real
+       period-over-period delta (green/red, with a triangle) where the data
+       supports one, or a plain muted caption where it doesn't — never a
+       fabricated trend. */
     .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 18px; margin-bottom: 20px; }
     .stat-card {
       background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow);
       border-radius: 18px; padding: 20px 22px;
     }
-    .stat-card .icon-chip {
-      width: 38px; height: 38px; border-radius: 12px; background: var(--icon-tint);
-      display: flex; align-items: center; justify-content: center; font-size: 16px;
-      color: var(--accent); margin-bottom: 14px;
-    }
-    .stat-card .label { font-size: 12.5px; color: var(--muted); font-weight: 600; margin-bottom: 8px; }
+    .stat-card .top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .stat-card .label { font-size: 13px; color: var(--muted); font-weight: 600; }
+    .stat-card .chevron { color: var(--muted); font-size: 13px; opacity: .7; }
     .stat-card .value { font-size: 27px; font-weight: 800; line-height: 1.1; letter-spacing: -.3px; }
-    .stat-card .sub { font-size: 12px; color: var(--muted); margin-top: 7px; }
+    .stat-card .sub { font-size: 12px; color: var(--muted); margin-top: 9px; }
+    .stat-card .delta { font-size: 12px; font-weight: 700; margin-top: 9px; display: flex; align-items: center; gap: 4px; }
+    .stat-card .delta.up { color: var(--good); }
+    .stat-card .delta.down { color: var(--danger); }
+    .stat-card .delta .cap { color: var(--muted); font-weight: 500; }
 
     .grid-2 { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; }
     @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
     .chart-wrap { position: relative; height: 260px; }
     .chart-wrap.small { height: 190px; }
 
-    /* Donut-with-list legend, like a budget-breakdown widget — a center
-       number plus a colored-dot row per slice — reads more finished than
-       Chart.js's own bottom legend. */
+    /* Donut-with-list legend: center stack is a small caption above a
+       large bold number (denominator tucked underneath, since a bare
+       percentage is never shown on its own anywhere in this dashboard),
+       and the list below is plain dot + name — no trailing numbers,
+       matching a simple category-legend rather than a second data table. */
     .donut-layout { display: flex; align-items: center; gap: 22px; }
     .donut-canvas-wrap { position: relative; width: 150px; height: 150px; flex-shrink: 0; }
     .donut-center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; pointer-events: none; }
-    .donut-center .big { font-size: 20px; font-weight: 800; }
-    .donut-center .small { font-size: 10.5px; color: var(--muted); font-weight: 600; }
-    .donut-legend { flex: 1; display: flex; flex-direction: column; gap: 12px; }
-    .donut-legend .row { display: flex; align-items: center; gap: 9px; font-size: 12.5px; }
+    .donut-center .cap { font-size: 11px; color: var(--muted); font-weight: 600; margin-bottom: 2px; }
+    .donut-center .big { font-size: 22px; font-weight: 800; }
+    .donut-center .denom { font-size: 10px; color: var(--muted); font-weight: 600; margin-top: 2px; }
+    .donut-legend { flex: 1; display: flex; flex-direction: column; gap: 14px; }
+    .donut-legend .row { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text); }
     .donut-legend .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-    .donut-legend .name { color: var(--muted); flex: 1; }
-    .donut-legend .num { font-weight: 700; font-variant-numeric: tabular-nums; }
+
+    /* Ranked list as horizontal progress bars — name + value on one line,
+       a thin filled track underneath — used for any "top N" ranking
+       instead of a bare table. */
+    .progress-list { display: flex; flex-direction: column; gap: 16px; }
+    .progress-row .top-line { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 7px; font-size: 13px; }
+    .progress-row .name { font-weight: 600; color: var(--text); }
+    .progress-row .val { font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+    .progress-row .track { height: 6px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+    .progress-row .fill { height: 100%; border-radius: 999px; background: var(--navy); }
 
     table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
     th, td { text-align: left; padding: 12px 10px; border-bottom: 1px solid var(--border); }
@@ -191,7 +220,7 @@
 
   <div id="app-view" class="hidden">
     <div class="sidebar">
-      <div class="logo"><span class="dot"></span> RALLY</div>
+      <div class="logo"><span class="mark">R</span> Rally</div>
       <div class="nav-item active" data-panel="overview"><span class="ic">&#9635;</span> Overview</div>
       <div class="nav-item" data-panel="branches"><span class="ic">&#9737;</span> Branches</div>
       <div class="nav-item" data-panel="leaderboard"><span class="ic">&#9733;</span> Leaderboard</div>
@@ -311,7 +340,8 @@
 
       loginView.classList.add('hidden');
       appView.classList.remove('hidden');
-      document.getElementById('topbar-sub').textContent = `${state.orgName} · Welcome back, ${state.firstName}`;
+      document.getElementById('topbar-title').textContent = `Welcome back, ${state.firstName}!`;
+      document.getElementById('topbar-sub').textContent = `Here's what's happening at ${state.orgName}`;
       renderUserChip();
 
       wireNav();
@@ -345,13 +375,28 @@
       `;
     }
 
-    const PANEL_TITLES = { overview: 'Overview', branches: 'Branches', leaderboard: 'Leaderboard', events: 'Events' };
+    // Overview keeps the personal "Welcome back" greeting (set once at
+    // login); every other section gets a plain title — a greeting only
+    // makes sense on the page you land on, not on "Events".
+    const PANEL_TITLES = {
+      overview: () => `Welcome back, ${state.firstName}!`,
+      branches: () => 'Branches',
+      leaderboard: () => 'Leaderboard',
+      events: () => 'Events',
+    };
+    const PANEL_SUBS = {
+      overview: () => `Here's what's happening at ${state.orgName}`,
+      branches: () => `Every branch in ${state.orgName}, ranked by attendance`,
+      leaderboard: () => `Ranked by attendance rate, not raw count`,
+      events: () => `Every event in ${state.orgName}`,
+    };
 
     async function switchPanel(name) {
       document.querySelectorAll('.nav-item').forEach(i => i.classList.toggle('active', i.dataset.panel === name));
       document.querySelectorAll('.panel').forEach(p => p.classList.add('hidden'));
       document.getElementById(`panel-${name}`).classList.remove('hidden');
-      document.getElementById('topbar-title').textContent = PANEL_TITLES[name];
+      document.getElementById('topbar-title').textContent = PANEL_TITLES[name]();
+      document.getElementById('topbar-sub').textContent = PANEL_SUBS[name]();
       await loadPanel(name);
     }
 
@@ -372,9 +417,10 @@
       el.innerHTML = '<div class="loading">Loading…</div>';
       const { startIso, endIso } = periodRange(state.days);
 
-      const [peopleRes, summaryRes, trendRes, branchRes, boardRes, eventsCountRes, tasksRes] = await Promise.all([
+      const [peopleRes, summaryRes, comparisonRes, trendRes, branchRes, boardRes, eventsCountRes, tasksRes] = await Promise.all([
         sb.rpc('get_org_people_analytics', { p_org_id: state.orgId }),
         sb.rpc('get_attendance_summary', { p_scope_type: 'org', p_scope_id: state.orgId, p_start: startIso, p_end: endIso }),
+        sb.rpc('get_attendance_comparison', { p_scope_type: 'org', p_scope_id: state.orgId, p_start: startIso, p_end: endIso }).then(r => r, () => ({ data: null })),
         sb.rpc('get_attendance_trend_daily', { p_scope_type: 'org', p_scope_id: state.orgId, p_days: state.days }),
         sb.rpc('get_branch_leaderboard', { p_org_id: state.orgId, p_start: startIso, p_end: endIso }),
         sb.rpc('get_people_leaderboard', { p_scope_type: 'org', p_scope_id: state.orgId, p_start: startIso, p_end: endIso, p_limit: 5 }),
@@ -384,35 +430,40 @@
 
       const people = peopleRes.data || {};
       const summary = summaryRes.data || {};
+      const comparison = comparisonRes.data;
       const trend = trendRes.data || [];
       const branches = (branchRes.data || []).slice().sort((a, b) => (b.rate_pct ?? 0) - (a.rate_pct ?? 0));
       const board = boardRes.data || [];
       const upcomingEvents = eventsCountRes.count ?? 0;
       const tasks = tasksRes.data;
 
+      // Attendance gets a real period-over-period delta (already computed
+      // server-side by get_attendance_comparison); other stats show a
+      // plain caption instead of a fabricated trend where no comparison
+      // exists yet.
+      const attendanceDelta = comparison
+        ? `<div class="delta ${comparison.rate_change_pct_points >= 0 ? 'up' : 'down'}">${comparison.rate_change_pct_points >= 0 ? '▲' : '▼'} ${Math.abs(comparison.rate_change_pct_points)}pp <span class="cap">vs previous period</span></div>`
+        : `<div class="sub">${summary.denominator_label || 'No data yet'}</div>`;
+
       el.innerHTML = `
         <div class="stat-row">
           <div class="stat-card">
-            <div class="icon-chip">&#128101;</div>
-            <div class="label">People</div>
+            <div class="top-row"><span class="label">People</span><span class="chevron">&#8250;</span></div>
             <div class="value">${fmtInt(people.total_people)}</div>
-            <div class="sub">${fmtInt(people.active_people)} active</div>
+            <div class="sub">${fmtInt(people.active_people)} active${people.new_people_30d ? ` · +${fmtInt(people.new_people_30d)} new` : ''}</div>
           </div>
           <div class="stat-card">
-            <div class="icon-chip">&#10003;</div>
-            <div class="label">Attendance</div>
+            <div class="top-row"><span class="label">Attendance</span><span class="chevron">&#8250;</span></div>
             <div class="value">${summary.rate_pct ?? '—'}%</div>
-            <div class="sub">${summary.denominator_label || 'No data yet'}</div>
+            ${attendanceDelta}
           </div>
           <div class="stat-card">
-            <div class="icon-chip">&#128197;</div>
-            <div class="label">Upcoming events</div>
+            <div class="top-row"><span class="label">Upcoming events</span><span class="chevron">&#8250;</span></div>
             <div class="value">${fmtInt(upcomingEvents)}</div>
             <div class="sub">Scheduled ahead</div>
           </div>
           <div class="stat-card">
-            <div class="icon-chip">&#9776;</div>
-            <div class="label">Tasks</div>
+            <div class="top-row"><span class="label">Tasks</span><span class="chevron">&#8250;</span></div>
             <div class="value">${tasks ? fmtInt(tasks.pending + tasks.in_progress) : '—'}</div>
             <div class="sub">${tasks ? `${fmtInt(tasks.overdue)} overdue` : 'Not available'}</div>
           </div>
@@ -420,31 +471,30 @@
 
         <div class="grid-2">
           <div class="card">
-            <h2>Attendance trend</h2>
+            <div class="card-head"><h2>Attendance trend</h2></div>
             <div class="chart-wrap"><canvas id="chart-trend"></canvas></div>
           </div>
           <div class="card">
-            <h2>Attendance breakdown</h2>
+            <div class="card-head"><h2>Attendance breakdown</h2></div>
             <div id="breakdown-wrap"></div>
           </div>
         </div>
 
         <div class="grid-2">
           <div class="card">
-            <h2>Branch performance</h2>
+            <div class="card-head"><h2>Branch performance</h2></div>
             <div class="chart-wrap"><canvas id="chart-branches"></canvas></div>
           </div>
           <div class="card">
-            <h2>Top performers</h2>
+            <div class="card-head"><h2>Top performers</h2></div>
             ${board.length === 0 ? '<div class="empty">No attendance recorded yet.</div>' : `
-            <table><tbody>
-              ${board.map((p, i) => `
-                <tr>
-                  <td class="rank">${i + 1}</td>
-                  <td>${p.name}</td>
-                  <td class="rate ${rateClass(p.rate_pct)}">${p.rate_pct}%</td>
-                </tr>`).join('')}
-            </tbody></table>`}
+            <div class="progress-list">
+              ${board.map(p => `
+                <div class="progress-row">
+                  <div class="top-line"><span class="name">${p.name}</span><span class="val">${p.rate_pct}%</span></div>
+                  <div class="track"><div class="fill" style="width:${p.rate_pct}%"></div></div>
+                </div>`).join('')}
+            </div>`}
           </div>
         </div>
       `;
@@ -506,26 +556,28 @@
         wrap.innerHTML = '<div class="empty">No attendance recorded yet.</div>';
         return;
       }
-      // A donut with its slice values as a colored-dot list beside it — the
-      // center shows the overall rate, matching how the rest of the
-      // dashboard never states a percentage without also showing what it's
-      // out of. Built as HTML rather than Chart.js's own legend, which
-      // reads as an afterthought stacked under the chart.
+      // A donut with its slice values as a plain colored-dot legend beside
+      // it, not stacked underneath the way Chart.js renders its own
+      // legend. Center is a small caption over a large number, with the
+      // denominator tucked underneath in the same small type — a bare
+      // percentage is never shown on its own anywhere in this dashboard,
+      // so the "X of Y" context still has to live somewhere even though
+      // the legend rows themselves are name-only.
       wrap.innerHTML = `
         <div class="donut-layout">
           <div class="donut-canvas-wrap">
             <canvas id="chart-breakdown"></canvas>
             <div class="donut-center">
+              <div class="cap">Attendance</div>
               <div class="big">${summary.rate_pct ?? 0}%</div>
-              <div class="small">of ${fmtInt(total)}</div>
+              <div class="denom">${fmtInt(summary.confirmed || 0)} of ${fmtInt(total)}</div>
             </div>
           </div>
           <div class="donut-legend">
             ${items.map(i => `
               <div class="row">
                 <span class="dot" style="background:${i.color}"></span>
-                <span class="name">${i.label}</span>
-                <span class="num">${fmtInt(i.value)}</span>
+                <span>${i.label}</span>
               </div>`).join('')}
           </div>
         </div>
