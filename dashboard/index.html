@@ -13,24 +13,30 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --bg: #f5f6fa; --surface: #ffffff; --surface-2: #f8f9fc; --border: #e4e6ea;
+      --bg: #f5f6fa; --surface: #ffffff; --surface-2: #f8f9fc; --border: #ececf3;
       --navy: #000666; --gold: #FCD400; --accent: var(--navy);
-      --text: #191c1e; --muted: #5a5c6b; --danger: #b3261e; --good: #1e7a34; --warn: #ef6c00;
+      --text: #191c1e; --muted: #86889a; --danger: #b3261e; --good: #1e7a34; --warn: #ef6c00;
       --sidebar-bg: #0b0c1f; --sidebar-text: #c7c9e0; --sidebar-active: #171935;
+      --shadow: 0 1px 2px rgba(20,20,50,.03), 0 10px 28px -14px rgba(20,20,50,.10);
+      --icon-tint: rgba(0,6,102,.08);
     }
     @media (prefers-color-scheme: dark) {
       :root:not([data-theme="light"]) {
-        --bg: #0a0b1a; --surface: #12132b; --surface-2: #171836; --border: #262842;
-        --accent: #8b93ff; --text: #eef0fa; --muted: #9294b0;
+        --bg: #0a0b1a; --surface: #12132b; --surface-2: #171836; --border: #23243f;
+        --accent: #8b93ff; --text: #eef0fa; --muted: #8c8ea8;
         --danger: #ff6b6b; --good: #4ade80; --warn: #f2b355;
+        --shadow: 0 1px 2px rgba(0,0,0,.2), 0 10px 28px -14px rgba(0,0,0,.5);
+        --icon-tint: rgba(139,147,255,.12);
       }
     }
     :root[data-theme="dark"] {
-      --bg: #0a0b1a; --surface: #12132b; --surface-2: #171836; --border: #262842;
-      --accent: #8b93ff; --text: #eef0fa; --muted: #9294b0;
+      --bg: #0a0b1a; --surface: #12132b; --surface-2: #171836; --border: #23243f;
+      --accent: #8b93ff; --text: #eef0fa; --muted: #8c8ea8;
       --danger: #ff6b6b; --good: #4ade80; --warn: #f2b355;
+      --shadow: 0 1px 2px rgba(0,0,0,.2), 0 10px 28px -14px rgba(0,0,0,.5);
+      --icon-tint: rgba(139,147,255,.12);
     }
-    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); }
+    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
     .hidden { display: none !important; }
 
     /* ---------- Login ---------- */
@@ -71,14 +77,28 @@
     }
     .sidebar .signout:hover { background: rgba(255,255,255,.05); }
 
-    .main { flex: 1; min-width: 0; padding: 28px 32px 60px; }
-    .topbar { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
-    .topbar h1 { font-size: 22px; font-weight: 800; }
+    .main { flex: 1; min-width: 0; padding: 32px 36px 60px; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; flex-wrap: wrap; gap: 14px; }
+    .topbar h1 { font-size: 23px; font-weight: 800; letter-spacing: -.2px; }
     .topbar .sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+    .topbar-right { display: flex; align-items: center; gap: 12px; }
     .period-select {
       background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
       padding: 9px 14px; font-size: 13px; font-family: inherit; color: var(--text); cursor: pointer;
+      box-shadow: var(--shadow);
     }
+    .user-chip {
+      display: flex; align-items: center; gap: 9px; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 999px; padding: 6px 14px 6px 6px;
+      box-shadow: var(--shadow);
+    }
+    .user-chip .avatar {
+      width: 28px; height: 28px; border-radius: 50%; background: var(--navy); color: #fff;
+      display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800;
+      flex-shrink: 0;
+    }
+    .user-chip .who { font-size: 12.5px; font-weight: 700; line-height: 1.2; }
+    .user-chip .role { font-size: 11px; color: var(--muted); line-height: 1.2; }
 
     /* Below this width the fixed-width vertical sidebar no longer fits
        next to real content (a 232px sidebar plus any usable main area
@@ -100,39 +120,62 @@
 
     .panel { }
     .card {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 16px; padding: 20px; margin-bottom: 18px;
+      background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow);
+      border-radius: 20px; padding: 24px; margin-bottom: 20px;
     }
-    .card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); font-weight: 700; margin-bottom: 14px; }
+    .card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); font-weight: 700; margin-bottom: 18px; }
 
-    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 18px; }
-    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 18px 20px; }
-    .stat-card .label { font-size: 12px; color: var(--muted); font-weight: 600; margin-bottom: 8px; }
-    .stat-card .value { font-size: 26px; font-weight: 800; line-height: 1.1; }
-    .stat-card .sub { font-size: 12px; color: var(--muted); margin-top: 6px; }
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 18px; margin-bottom: 20px; }
+    .stat-card {
+      background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow);
+      border-radius: 18px; padding: 20px 22px;
+    }
+    .stat-card .icon-chip {
+      width: 38px; height: 38px; border-radius: 12px; background: var(--icon-tint);
+      display: flex; align-items: center; justify-content: center; font-size: 16px;
+      color: var(--accent); margin-bottom: 14px;
+    }
+    .stat-card .label { font-size: 12.5px; color: var(--muted); font-weight: 600; margin-bottom: 8px; }
+    .stat-card .value { font-size: 27px; font-weight: 800; line-height: 1.1; letter-spacing: -.3px; }
+    .stat-card .sub { font-size: 12px; color: var(--muted); margin-top: 7px; }
 
-    .grid-2 { display: grid; grid-template-columns: 1.6fr 1fr; gap: 18px; }
+    .grid-2 { display: grid; grid-template-columns: 1.6fr 1fr; gap: 20px; }
     @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
     .chart-wrap { position: relative; height: 260px; }
-    .chart-wrap.small { height: 220px; }
+    .chart-wrap.small { height: 190px; }
+
+    /* Donut-with-list legend, like a budget-breakdown widget — a center
+       number plus a colored-dot row per slice — reads more finished than
+       Chart.js's own bottom legend. */
+    .donut-layout { display: flex; align-items: center; gap: 22px; }
+    .donut-canvas-wrap { position: relative; width: 150px; height: 150px; flex-shrink: 0; }
+    .donut-center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; flex-direction: column; pointer-events: none; }
+    .donut-center .big { font-size: 20px; font-weight: 800; }
+    .donut-center .small { font-size: 10.5px; color: var(--muted); font-weight: 600; }
+    .donut-legend { flex: 1; display: flex; flex-direction: column; gap: 12px; }
+    .donut-legend .row { display: flex; align-items: center; gap: 9px; font-size: 12.5px; }
+    .donut-legend .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .donut-legend .name { color: var(--muted); flex: 1; }
+    .donut-legend .num { font-weight: 700; font-variant-numeric: tabular-nums; }
 
     table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); }
-    th { color: var(--muted); font-weight: 600; font-size: 11.5px; text-transform: uppercase; letter-spacing: .4px; }
-    tr.clickable { cursor: pointer; }
+    th, td { text-align: left; padding: 12px 10px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
+    tbody tr:last-child td { border-bottom: none; }
+    tr.clickable { cursor: pointer; transition: background .1s; }
     tr.clickable:hover { background: var(--surface-2); }
     .rate { font-weight: 700; font-variant-numeric: tabular-nums; }
     .rate.good { color: var(--good); }
     .rate.bad { color: var(--danger); }
     .rank { color: var(--muted); font-variant-numeric: tabular-nums; width: 26px; }
-    .badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; }
     .badge.active { background: rgba(30,122,52,.12); color: var(--good); }
     .badge.inactive { background: rgba(179,38,30,.1); color: var(--danger); }
     .badge.neutral { background: var(--surface-2); color: var(--muted); }
-    .note { font-size: 12px; color: var(--muted); line-height: 1.5; margin-top: 8px; }
-    .back-link { color: var(--accent); cursor: pointer; font-size: 13.5px; margin-bottom: 14px; display: inline-block; font-weight: 600; }
-    .empty { color: var(--muted); font-size: 13.5px; padding: 20px 0; text-align: center; }
-    .loading { color: var(--muted); font-size: 13.5px; padding: 40px 0; text-align: center; }
+    .note { font-size: 12px; color: var(--muted); line-height: 1.5; margin-top: 10px; }
+    .back-link { color: var(--accent); cursor: pointer; font-size: 13.5px; margin-bottom: 16px; display: inline-block; font-weight: 600; }
+    .empty { color: var(--muted); font-size: 13.5px; padding: 24px 0; text-align: center; }
+    .loading { color: var(--muted); font-size: 13.5px; padding: 44px 0; text-align: center; }
   </style>
 </head>
 <body>
@@ -163,11 +206,14 @@
           <h1 id="topbar-title">Overview</h1>
           <div class="sub" id="topbar-sub"></div>
         </div>
-        <select class="period-select" id="period-select">
-          <option value="7">Last 7 days</option>
-          <option value="30" selected>Last 30 days</option>
-          <option value="90">Last 90 days</option>
-        </select>
+        <div class="topbar-right">
+          <select class="period-select" id="period-select">
+            <option value="7">Last 7 days</option>
+            <option value="30" selected>Last 30 days</option>
+            <option value="90">Last 90 days</option>
+          </select>
+          <div class="user-chip" id="user-chip"></div>
+        </div>
       </div>
 
       <div id="panel-overview" class="panel"><div class="loading">Loading…</div></div>
@@ -234,11 +280,11 @@
 
       let memberRow = null;
       if (orgId) {
-        const { data } = await sb.from('members').select('id, org_role, first_name, organization_id').eq('user_id', userId).eq('organization_id', orgId).maybeSingle();
+        const { data } = await sb.from('members').select('id, org_role, first_name, last_name, organization_id').eq('user_id', userId).eq('organization_id', orgId).maybeSingle();
         memberRow = data;
       }
       if (!memberRow) {
-        const { data } = await sb.from('members').select('id, org_role, first_name, organization_id').eq('user_id', userId).order('created_at', { ascending: true }).limit(1).maybeSingle();
+        const { data } = await sb.from('members').select('id, org_role, first_name, last_name, organization_id').eq('user_id', userId).order('created_at', { ascending: true }).limit(1).maybeSingle();
         memberRow = data;
         orgId = memberRow?.organization_id ?? null;
       }
@@ -260,11 +306,13 @@
       state.memberId = memberRow.id;
       state.role = memberRow.org_role;
       state.firstName = memberRow.first_name || '';
+      state.lastName = memberRow.last_name || '';
       state.orgName = org?.name || '';
 
       loginView.classList.add('hidden');
       appView.classList.remove('hidden');
       document.getElementById('topbar-sub').textContent = `${state.orgName} · Welcome back, ${state.firstName}`;
+      renderUserChip();
 
       wireNav();
       wirePeriodSelect();
@@ -283,6 +331,18 @@
         const active = document.querySelector('.nav-item.active').dataset.panel;
         await loadPanel(active);
       });
+    }
+
+    function renderUserChip() {
+      const initials = ((state.firstName[0] || '') + (state.lastName[0] || '')).toUpperCase() || '?';
+      const roleLabel = state.role === 'super_admin' ? 'Super Admin' : 'Admin';
+      document.getElementById('user-chip').innerHTML = `
+        <div class="avatar">${initials}</div>
+        <div>
+          <div class="who">${state.firstName} ${state.lastName}</div>
+          <div class="role">${roleLabel}</div>
+        </div>
+      `;
     }
 
     const PANEL_TITLES = { overview: 'Overview', branches: 'Branches', leaderboard: 'Leaderboard', events: 'Events' };
@@ -333,21 +393,25 @@
       el.innerHTML = `
         <div class="stat-row">
           <div class="stat-card">
+            <div class="icon-chip">&#128101;</div>
             <div class="label">People</div>
             <div class="value">${fmtInt(people.total_people)}</div>
             <div class="sub">${fmtInt(people.active_people)} active</div>
           </div>
           <div class="stat-card">
+            <div class="icon-chip">&#10003;</div>
             <div class="label">Attendance</div>
             <div class="value">${summary.rate_pct ?? '—'}%</div>
             <div class="sub">${summary.denominator_label || 'No data yet'}</div>
           </div>
           <div class="stat-card">
+            <div class="icon-chip">&#128197;</div>
             <div class="label">Upcoming events</div>
             <div class="value">${fmtInt(upcomingEvents)}</div>
             <div class="sub">Scheduled ahead</div>
           </div>
           <div class="stat-card">
+            <div class="icon-chip">&#9776;</div>
             <div class="label">Tasks</div>
             <div class="value">${tasks ? fmtInt(tasks.pending + tasks.in_progress) : '—'}</div>
             <div class="sub">${tasks ? `${fmtInt(tasks.overdue)} overdue` : 'Not available'}</div>
@@ -361,7 +425,7 @@
           </div>
           <div class="card">
             <h2>Attendance breakdown</h2>
-            <div class="chart-wrap small"><canvas id="chart-breakdown"></canvas></div>
+            <div id="breakdown-wrap"></div>
           </div>
         </div>
 
@@ -429,20 +493,51 @@
 
     function renderBreakdownChart(summary) {
       destroyChart('breakdown');
-      const ctx = document.getElementById('chart-breakdown');
-      if (!ctx) return;
-      const vals = [summary.confirmed || 0, summary.absent || 0, summary.excused || 0, summary.pending || 0];
-      if (vals.every(v => v === 0)) {
-        ctx.parentElement.innerHTML = '<div class="empty">No attendance recorded yet.</div>';
+      const wrap = document.getElementById('breakdown-wrap');
+      if (!wrap) return;
+      const items = [
+        { label: 'Present', value: summary.confirmed || 0, color: '#1e7a34' },
+        { label: 'Absent', value: summary.absent || 0, color: '#b3261e' },
+        { label: 'Excused', value: summary.excused || 0, color: '#ef6c00' },
+        { label: 'Pending', value: summary.pending || 0, color: '#8b93ff' },
+      ];
+      const total = items.reduce((s, i) => s + i.value, 0);
+      if (total === 0) {
+        wrap.innerHTML = '<div class="empty">No attendance recorded yet.</div>';
         return;
       }
+      // A donut with its slice values as a colored-dot list beside it — the
+      // center shows the overall rate, matching how the rest of the
+      // dashboard never states a percentage without also showing what it's
+      // out of. Built as HTML rather than Chart.js's own legend, which
+      // reads as an afterthought stacked under the chart.
+      wrap.innerHTML = `
+        <div class="donut-layout">
+          <div class="donut-canvas-wrap">
+            <canvas id="chart-breakdown"></canvas>
+            <div class="donut-center">
+              <div class="big">${summary.rate_pct ?? 0}%</div>
+              <div class="small">of ${fmtInt(total)}</div>
+            </div>
+          </div>
+          <div class="donut-legend">
+            ${items.map(i => `
+              <div class="row">
+                <span class="dot" style="background:${i.color}"></span>
+                <span class="name">${i.label}</span>
+                <span class="num">${fmtInt(i.value)}</span>
+              </div>`).join('')}
+          </div>
+        </div>
+      `;
+      const ctx = document.getElementById('chart-breakdown');
       charts.breakdown = new Chart(ctx, {
         type: 'doughnut',
         data: {
-          labels: ['Present', 'Absent', 'Excused', 'Pending'],
-          datasets: [{ data: vals, backgroundColor: ['#1e7a34', '#b3261e', '#ef6c00', '#8b93ff'] }],
+          labels: items.map(i => i.label),
+          datasets: [{ data: items.map(i => i.value), backgroundColor: items.map(i => i.color), borderWidth: 0 }],
         },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } } },
+        options: { responsive: true, maintainAspectRatio: false, cutout: '72%', plugins: { legend: { display: false }, tooltip: { enabled: true } } },
       });
     }
 
