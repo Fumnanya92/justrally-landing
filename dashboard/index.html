@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Rally — Organization Dashboard</title>
+  <script>(function(){try{var t=localStorage.getItem('rally-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f5f6fa; --surface: #ffffff; --surface-2: #f8f9fc; --border: #e4e6ea;
+      --navy: #000666; --gold: #FCD400; --accent: var(--navy);
+      --text: #191c1e; --muted: #5a5c6b; --danger: #b3261e; --good: #1e7a34; --warn: #ef6c00;
+      --sidebar-bg: #0b0c1f; --sidebar-text: #c7c9e0; --sidebar-active: #171935;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #0a0b1a; --surface: #12132b; --surface-2: #171836; --border: #262842;
+        --accent: #8b93ff; --text: #eef0fa; --muted: #9294b0;
+        --danger: #ff6b6b; --good: #4ade80; --warn: #f2b355;
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #0a0b1a; --surface: #12132b; --surface-2: #171836; --border: #262842;
+      --accent: #8b93ff; --text: #eef0fa; --muted: #9294b0;
+      --danger: #ff6b6b; --good: #4ade80; --warn: #f2b355;
+    }
+    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); }
+    .hidden { display: none !important; }
+
+    /* ---------- Login ---------- */
+    #login-view { max-width: 420px; margin: 100px auto; text-align: center; padding: 0 20px; }
+    #login-view .logo { font-size: 24px; font-weight: 900; color: var(--accent); margin-bottom: 6px; }
+    #login-view h1 { font-size: 15px; font-weight: 600; color: var(--muted); margin-bottom: 28px; }
+    #login-view input {
+      display: block; width: 100%; padding: 13px 14px; margin-bottom: 12px;
+      border: 1px solid var(--border); border-radius: 10px; background: var(--surface);
+      color: var(--text); font-size: 15px; font-family: inherit;
+    }
+    #login-view button {
+      width: 100%; background: var(--navy); color: #fff; border: none;
+      border-radius: 10px; padding: 13px; font-size: 15px; font-weight: 700; cursor: pointer;
+    }
+    #login-view button:hover { opacity: .9; }
+    #login-error { color: var(--danger); font-size: 13px; margin-top: 12px; min-height: 18px; }
+
+    /* ---------- App shell ---------- */
+    #app-view { display: flex; min-height: 100vh; }
+    .sidebar {
+      width: 232px; flex-shrink: 0; background: var(--sidebar-bg); color: var(--sidebar-text);
+      padding: 22px 14px; display: flex; flex-direction: column;
+    }
+    .sidebar .logo { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 900; color: #fff; padding: 6px 10px 26px; }
+    .sidebar .logo .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--gold); }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-radius: 10px;
+      font-size: 14px; font-weight: 600; cursor: pointer; margin-bottom: 2px; color: var(--sidebar-text);
+    }
+    .nav-item:hover { background: rgba(255,255,255,.05); }
+    .nav-item.active { background: var(--sidebar-active); color: #fff; }
+    .nav-item .ic { width: 18px; text-align: center; }
+    .sidebar .spacer { flex: 1; }
+    .sidebar .signout {
+      padding: 11px 12px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer;
+      color: var(--sidebar-text); border: 1px solid rgba(255,255,255,.1);
+    }
+    .sidebar .signout:hover { background: rgba(255,255,255,.05); }
+
+    .main { flex: 1; min-width: 0; padding: 28px 32px 60px; }
+    .topbar { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+    .topbar h1 { font-size: 22px; font-weight: 800; }
+    .topbar .sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+    .period-select {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 9px 14px; font-size: 13px; font-family: inherit; color: var(--text); cursor: pointer;
+    }
+
+    /* Below this width the fixed-width vertical sidebar no longer fits
+       next to real content (a 232px sidebar plus any usable main area
+       stops working well under ~860px) — collapse it into a horizontal,
+       scrollable top nav instead of letting the page grow wider than the
+       viewport. */
+    @media (max-width: 860px) {
+      #app-view { flex-direction: column; }
+      .sidebar {
+        width: 100%; flex-direction: row; align-items: center;
+        padding: 12px 16px; overflow-x: auto; gap: 4px;
+      }
+      .sidebar .logo { padding: 0 12px 0 0; flex-shrink: 0; }
+      .sidebar .spacer { display: none; }
+      .nav-item { white-space: nowrap; margin-bottom: 0; }
+      .sidebar .signout { white-space: nowrap; flex-shrink: 0; }
+      .main { padding: 20px 16px 40px; }
+    }
+
+    .panel { }
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 20px; margin-bottom: 18px;
+    }
+    .card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); font-weight: 700; margin-bottom: 14px; }
+
+    .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 18px; }
+    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 18px 20px; }
+    .stat-card .label { font-size: 12px; color: var(--muted); font-weight: 600; margin-bottom: 8px; }
+    .stat-card .value { font-size: 26px; font-weight: 800; line-height: 1.1; }
+    .stat-card .sub { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+    .grid-2 { display: grid; grid-template-columns: 1.6fr 1fr; gap: 18px; }
+    @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
+    .chart-wrap { position: relative; height: 260px; }
+    .chart-wrap.small { height: 220px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 600; font-size: 11.5px; text-transform: uppercase; letter-spacing: .4px; }
+    tr.clickable { cursor: pointer; }
+    tr.clickable:hover { background: var(--surface-2); }
+    .rate { font-weight: 700; font-variant-numeric: tabular-nums; }
+    .rate.good { color: var(--good); }
+    .rate.bad { color: var(--danger); }
+    .rank { color: var(--muted); font-variant-numeric: tabular-nums; width: 26px; }
+    .badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+    .badge.active { background: rgba(30,122,52,.12); color: var(--good); }
+    .badge.inactive { background: rgba(179,38,30,.1); color: var(--danger); }
+    .badge.neutral { background: var(--surface-2); color: var(--muted); }
+    .note { font-size: 12px; color: var(--muted); line-height: 1.5; margin-top: 8px; }
+    .back-link { color: var(--accent); cursor: pointer; font-size: 13.5px; margin-bottom: 14px; display: inline-block; font-weight: 600; }
+    .empty { color: var(--muted); font-size: 13.5px; padding: 20px 0; text-align: center; }
+    .loading { color: var(--muted); font-size: 13.5px; padding: 40px 0; text-align: center; }
+  </style>
+</head>
+<body>
+
+  <div id="login-view">
+    <div class="logo">RALLY</div>
+    <h1>Organization Dashboard</h1>
+    <input id="login-email" type="email" placeholder="Email" autocomplete="username" />
+    <input id="login-password" type="password" placeholder="Password" autocomplete="current-password" />
+    <button id="login-btn">Sign in</button>
+    <div id="login-error"></div>
+  </div>
+
+  <div id="app-view" class="hidden">
+    <div class="sidebar">
+      <div class="logo"><span class="dot"></span> RALLY</div>
+      <div class="nav-item active" data-panel="overview"><span class="ic">&#9635;</span> Overview</div>
+      <div class="nav-item" data-panel="branches"><span class="ic">&#9737;</span> Branches</div>
+      <div class="nav-item" data-panel="leaderboard"><span class="ic">&#9733;</span> Leaderboard</div>
+      <div class="nav-item" data-panel="events"><span class="ic">&#9744;</span> Events</div>
+      <div class="spacer"></div>
+      <div class="signout" id="signout-btn">Sign out</div>
+    </div>
+
+    <div class="main">
+      <div class="topbar">
+        <div>
+          <h1 id="topbar-title">Overview</h1>
+          <div class="sub" id="topbar-sub"></div>
+        </div>
+        <select class="period-select" id="period-select">
+          <option value="7">Last 7 days</option>
+          <option value="30" selected>Last 30 days</option>
+          <option value="90">Last 90 days</option>
+        </select>
+      </div>
+
+      <div id="panel-overview" class="panel"><div class="loading">Loading…</div></div>
+      <div id="panel-branches" class="panel hidden"></div>
+      <div id="panel-leaderboard" class="panel hidden"></div>
+      <div id="panel-events" class="panel hidden"></div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://hbghbextytgrpnzbsppz.supabase.co';
+    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhiZ2hiZXh0eXRncnBuemJzcHB6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0MDIxMDksImV4cCI6MjA3Mzk3ODEwOX0.LXlv55Vm3liQagC-zWAeQ3pl9G_x1lL1zVmq-_uUm24';
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    const loginView = document.getElementById('login-view');
+    const appView = document.getElementById('app-view');
+    const loginError = document.getElementById('login-error');
+
+    let state = { orgId: null, orgName: '', memberId: null, role: null, firstName: '', days: 30 };
+    let charts = {}; // keep Chart.js instances so we can destroy before re-render
+
+    // ---------- formatting helpers ----------
+    function fmtInt(n) { return (n ?? 0).toLocaleString(); }
+    function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—'; }
+    function fmtDateTime(iso) { return iso ? new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—'; }
+    function dateOnly(d) { return d.toISOString().slice(0, 10); }
+    function periodRange(days) {
+      const end = new Date();
+      const start = new Date();
+      start.setDate(start.getDate() - (days - 1));
+      return { startIso: dateOnly(start), endIso: dateOnly(end) };
+    }
+    function rateClass(pct) { return pct == null ? '' : (pct >= 75 ? 'good' : pct < 50 ? 'bad' : ''); }
+    function koboToNaira(kobo, currency) {
+      const n = (kobo || 0) / 100;
+      return `${currency === 'NGN' || !currency ? '₦' : currency + ' '}${n.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+    }
+
+    // ---------- auth / bootstrap ----------
+    async function attemptLogin() {
+      loginError.textContent = '';
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) { loginError.textContent = 'Sign-in failed.'; return; }
+      await enterApp();
+    }
+
+    async function enterApp() {
+      const { data: userData, error: userErr } = await sb.auth.getUser();
+      if (userErr || !userData.user) {
+        loginError.textContent = 'Could not resolve your session.';
+        await sb.auth.signOut();
+        return;
+      }
+      const userId = userData.user.id;
+
+      // Resolve active org the same way the mobile app does: prefer
+      // user_preferences.active_organization_id, fall back to the first
+      // membership if unset.
+      let orgId = null;
+      const { data: prefs } = await sb.from('user_preferences').select('active_organization_id').eq('user_id', userId).maybeSingle();
+      orgId = prefs?.active_organization_id ?? null;
+
+      let memberRow = null;
+      if (orgId) {
+        const { data } = await sb.from('members').select('id, org_role, first_name, organization_id').eq('user_id', userId).eq('organization_id', orgId).maybeSingle();
+        memberRow = data;
+      }
+      if (!memberRow) {
+        const { data } = await sb.from('members').select('id, org_role, first_name, organization_id').eq('user_id', userId).order('created_at', { ascending: true }).limit(1).maybeSingle();
+        memberRow = data;
+        orgId = memberRow?.organization_id ?? null;
+      }
+
+      if (!memberRow || !orgId) {
+        loginError.textContent = 'No organization membership found for this account.';
+        await sb.auth.signOut();
+        return;
+      }
+      if (!['admin', 'super_admin'].includes(memberRow.org_role)) {
+        loginError.textContent = 'This dashboard is for organization admins only.';
+        await sb.auth.signOut();
+        return;
+      }
+
+      const { data: org } = await sb.from('organizations').select('name').eq('id', orgId).maybeSingle();
+
+      state.orgId = orgId;
+      state.memberId = memberRow.id;
+      state.role = memberRow.org_role;
+      state.firstName = memberRow.first_name || '';
+      state.orgName = org?.name || '';
+
+      loginView.classList.add('hidden');
+      appView.classList.remove('hidden');
+      document.getElementById('topbar-sub').textContent = `${state.orgName} · Welcome back, ${state.firstName}`;
+
+      wireNav();
+      wirePeriodSelect();
+      await loadOverview();
+    }
+
+    function wireNav() {
+      document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', () => switchPanel(item.dataset.panel));
+      });
+    }
+
+    function wirePeriodSelect() {
+      document.getElementById('period-select').addEventListener('change', async (e) => {
+        state.days = parseInt(e.target.value, 10);
+        const active = document.querySelector('.nav-item.active').dataset.panel;
+        await loadPanel(active);
+      });
+    }
+
+    const PANEL_TITLES = { overview: 'Overview', branches: 'Branches', leaderboard: 'Leaderboard', events: 'Events' };
+
+    async function switchPanel(name) {
+      document.querySelectorAll('.nav-item').forEach(i => i.classList.toggle('active', i.dataset.panel === name));
+      document.querySelectorAll('.panel').forEach(p => p.classList.add('hidden'));
+      document.getElementById(`panel-${name}`).classList.remove('hidden');
+      document.getElementById('topbar-title').textContent = PANEL_TITLES[name];
+      await loadPanel(name);
+    }
+
+    async function loadPanel(name) {
+      if (name === 'overview') return loadOverview();
+      if (name === 'branches') return loadBranches();
+      if (name === 'leaderboard') return loadLeaderboard();
+      if (name === 'events') return loadEvents();
+    }
+
+    function destroyChart(key) {
+      if (charts[key]) { charts[key].destroy(); delete charts[key]; }
+    }
+
+    // ---------- Overview ----------
+    async function loadOverview() {
+      const el = document.getElementById('panel-overview');
+      el.innerHTML = '<div class="loading">Loading…</div>';
+      const { startIso, endIso } = periodRange(state.days);
+
+      const [peopleRes, summaryRes, trendRes, branchRes, boardRes, eventsCountRes, tasksRes] = await Promise.all([
+        sb.rpc('get_org_people_analytics', { p_org_id: state.orgId }),
+        sb.rpc('get_attendance_summary', { p_scope_type: 'org', p_scope_id: state.orgId, p_start: startIso, p_end: endIso }),
+        sb.rpc('get_attendance_trend_daily', { p_scope_type: 'org', p_scope_id: state.orgId, p_days: state.days }),
+        sb.rpc('get_branch_leaderboard', { p_org_id: state.orgId, p_start: startIso, p_end: endIso }),
+        sb.rpc('get_people_leaderboard', { p_scope_type: 'org', p_scope_id: state.orgId, p_start: startIso, p_end: endIso, p_limit: 5 }),
+        sb.from('events').select('id', { count: 'exact', head: true }).eq('org_id', state.orgId).gte('start_at', new Date().toISOString()),
+        sb.rpc('get_org_task_counts', { p_org_id: state.orgId }).then(r => r, () => ({ data: null })),
+      ]);
+
+      const people = peopleRes.data || {};
+      const summary = summaryRes.data || {};
+      const trend = trendRes.data || [];
+      const branches = (branchRes.data || []).slice().sort((a, b) => (b.rate_pct ?? 0) - (a.rate_pct ?? 0));
+      const board = boardRes.data || [];
+      const upcomingEvents = eventsCountRes.count ?? 0;
+      const tasks = tasksRes.data;
+
+      el.innerHTML = `
+        <div class="stat-row">
+          <div class="stat-card">
+            <div class="label">People</div>
+            <div class="value">${fmtInt(people.total_people)}</div>
+            <div class="sub">${fmtInt(people.active_people)} active</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Attendance</div>
+            <div class="value">${summary.rate_pct ?? '—'}%</div>
+            <div class="sub">${summary.denominator_label || 'No data yet'}</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Upcoming events</div>
+            <div class="value">${fmtInt(upcomingEvents)}</div>
+            <div class="sub">Scheduled ahead</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">Tasks</div>
+            <div class="value">${tasks ? fmtInt(tasks.pending + tasks.in_progress) : '—'}</div>
+            <div class="sub">${tasks ? `${fmtInt(tasks.overdue)} overdue` : 'Not available'}</div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <h2>Attendance trend</h2>
+            <div class="chart-wrap"><canvas id="chart-trend"></canvas></div>
+          </div>
+          <div class="card">
+            <h2>Attendance breakdown</h2>
+            <div class="chart-wrap small"><canvas id="chart-breakdown"></canvas></div>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <h2>Branch performance</h2>
+            <div class="chart-wrap"><canvas id="chart-branches"></canvas></div>
+          </div>
+          <div class="card">
+            <h2>Top performers</h2>
+            ${board.length === 0 ? '<div class="empty">No attendance recorded yet.</div>' : `
+            <table><tbody>
+              ${board.map((p, i) => `
+                <tr>
+                  <td class="rank">${i + 1}</td>
+                  <td>${p.name}</td>
+                  <td class="rate ${rateClass(p.rate_pct)}">${p.rate_pct}%</td>
+                </tr>`).join('')}
+            </tbody></table>`}
+          </div>
+        </div>
+      `;
+
+      applyChartTheme();
+      renderTrendChart(trend);
+      renderBreakdownChart(summary);
+      renderBranchChart(branches.slice(0, 8));
+    }
+
+    // Chart.js defaults to its own gray for axis/legend text and grid
+    // lines, which doesn't track the page's light/dark theme — reads dim
+    // in dark mode. Point it at the same CSS variables everything else
+    // here uses, so a chart never looks out of place next to the rest of
+    // the page.
+    function applyChartTheme() {
+      const cs = getComputedStyle(document.documentElement);
+      Chart.defaults.color = cs.getPropertyValue('--muted').trim() || '#5a5c6b';
+      Chart.defaults.borderColor = cs.getPropertyValue('--border').trim() || '#e4e6ea';
+    }
+
+    function renderTrendChart(rows) {
+      destroyChart('trend');
+      const ctx = document.getElementById('chart-trend');
+      if (!ctx) return;
+      const cs = getComputedStyle(document.documentElement);
+      charts.trend = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: rows.map(r => new Date(r.day).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })),
+          datasets: [{
+            label: 'Attendance rate %',
+            data: rows.map(r => r.rate == null ? null : Math.round(r.rate * 1000) / 10),
+            borderColor: cs.getPropertyValue('--accent').trim() || '#000666',
+            backgroundColor: (cs.getPropertyValue('--accent').trim() || '#000666') + '15',
+            fill: true, tension: 0.35, spanGaps: true, pointRadius: 2,
+          }],
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { min: 0, max: 100, ticks: { callback: v => v + '%' } } },
+        },
+      });
+    }
+
+    function renderBreakdownChart(summary) {
+      destroyChart('breakdown');
+      const ctx = document.getElementById('chart-breakdown');
+      if (!ctx) return;
+      const vals = [summary.confirmed || 0, summary.absent || 0, summary.excused || 0, summary.pending || 0];
+      if (vals.every(v => v === 0)) {
+        ctx.parentElement.innerHTML = '<div class="empty">No attendance recorded yet.</div>';
+        return;
+      }
+      charts.breakdown = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Present', 'Absent', 'Excused', 'Pending'],
+          datasets: [{ data: vals, backgroundColor: ['#1e7a34', '#b3261e', '#ef6c00', '#8b93ff'] }],
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 11 } } } } },
+      });
+    }
+
+    function renderBranchChart(rows) {
+      destroyChart('branches');
+      const ctx = document.getElementById('chart-branches');
+      if (!ctx) return;
+      if (rows.length === 0) {
+        ctx.parentElement.innerHTML = '<div class="empty">No branches yet.</div>';
+        return;
+      }
+      const cs = getComputedStyle(document.documentElement);
+      charts.branches = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: rows.map(r => r.unit_name),
+          datasets: [{ label: 'Attendance rate %', data: rows.map(r => r.rate_pct), backgroundColor: cs.getPropertyValue('--accent').trim() || '#000666', borderRadius: 6 }],
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { min: 0, max: 100, ticks: { callback: v => v + '%' } } },
+        },
+      });
+    }
+
+    // ---------- Branches ----------
+    async function loadBranches() {
+      const el = document.getElementById('panel-branches');
+      el.innerHTML = '<div class="loading">Loading…</div>';
+      const { startIso, endIso } = periodRange(state.days);
+      const { data, error } = await sb.rpc('get_branch_leaderboard', { p_org_id: state.orgId, p_start: startIso, p_end: endIso });
+      if (error) { el.innerHTML = '<div class="card">Could not load branches.</div>'; return; }
+      const rows = (data || []).slice().sort((a, b) => (b.rate_pct ?? 0) - (a.rate_pct ?? 0));
+      el.innerHTML = `
+        <div class="card">
+          <h2>All branches</h2>
+          ${rows.length === 0 ? '<div class="empty">No branches yet.</div>' : `
+          <table>
+            <thead><tr><th>Branch</th><th>People</th><th>Expected</th><th>Confirmed</th><th>Rate</th></tr></thead>
+            <tbody>
+              ${rows.map(r => `
+                <tr class="clickable" data-unit-id="${r.unit_id}">
+                  <td>${r.unit_name}</td>
+                  <td>${fmtInt(r.people_count)}</td>
+                  <td>${fmtInt(r.expected)}</td>
+                  <td>${fmtInt(r.confirmed)}</td>
+                  <td class="rate ${rateClass(r.rate_pct)}">${r.rate_pct}%</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>`}
+        </div>
+        <div id="branch-detail"></div>
+      `;
+      el.querySelectorAll('tr.clickable').forEach(row => {
+        row.addEventListener('click', () => showBranchDetail(row.dataset.unitId));
+      });
+    }
+
+    async function showBranchDetail(unitId) {
+      const detail = document.getElementById('branch-detail');
+      detail.innerHTML = '<div class="loading">Loading…</div>';
+      const { startIso, endIso } = periodRange(state.days);
+      const { data, error } = await sb.rpc('get_branch_analytics', { p_unit_id: unitId, p_start: startIso, p_end: endIso });
+      if (error || !data) { detail.innerHTML = '<div class="card">Could not load this branch.</div>'; return; }
+      const a = data.attendance || {};
+      const teams = data.team_ranking || [];
+      detail.innerHTML = `
+        <span class="back-link" id="branch-back">&larr; Back to branches</span>
+        <div class="stat-row">
+          <div class="stat-card"><div class="label">Attendance</div><div class="value">${a.rate_pct ?? '—'}%</div><div class="sub">${a.denominator_label || ''}</div></div>
+          <div class="stat-card"><div class="label">Total people</div><div class="value">${fmtInt(data.people?.total)}</div><div class="sub">${fmtInt(data.people?.active)} active</div></div>
+          <div class="stat-card"><div class="label">Best session</div><div class="value" style="font-size:15px;">${a.best_session ? a.best_session.program_name : '—'}</div><div class="sub">${a.best_session ? `${Math.round((a.best_session.rate || 0) * 100)}%` : ''}</div></div>
+          <div class="stat-card"><div class="label">Worst session</div><div class="value" style="font-size:15px;">${a.worst_session ? a.worst_session.program_name : '—'}</div><div class="sub">${a.worst_session ? `${Math.round((a.worst_session.rate || 0) * 100)}%` : ''}</div></div>
+        </div>
+        <div class="card">
+          <h2>Teams</h2>
+          ${teams.length === 0 ? '<div class="empty">No teams yet.</div>' : `
+          <table>
+            <thead><tr><th>Team</th><th>People</th><th>Expected</th><th>Confirmed</th><th>Rate</th></tr></thead>
+            <tbody>
+              ${teams.map(t => `
+                <tr>
+                  <td>${t.group_name}</td>
+                  <td>${fmtInt(t.people_count)}</td>
+                  <td>${fmtInt(t.expected)}</td>
+                  <td>${fmtInt(t.confirmed)}</td>
+                  <td class="rate ${rateClass(Math.round((t.rate || 0) * 100))}">${Math.round((t.rate || 0) * 100)}%</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>`}
+        </div>
+      `;
+      document.getElementById('branch-back').addEventListener('click', () => { detail.innerHTML = ''; });
+    }
+
+    // ---------- Leaderboard ----------
+    async function loadLeaderboard() {
+      const el = document.getElementById('panel-leaderboard');
+      el.innerHTML = '<div class="loading">Loading…</div>';
+      const { startIso, endIso } = periodRange(state.days);
+      const { data, error } = await sb.rpc('get_people_leaderboard', { p_scope_type: 'org', p_scope_id: state.orgId, p_start: startIso, p_end: endIso, p_limit: 100 });
+      if (error) { el.innerHTML = '<div class="card">Could not load the leaderboard.</div>'; return; }
+      const rows = data || [];
+      el.innerHTML = `
+        <div class="card">
+          <h2>Ranked by attendance rate</h2>
+          <div class="note">Ranked by rate, not raw attendance count — someone at 8/8 outranks someone at 15/20.</div>
+          ${rows.length === 0 ? '<div class="empty">No attendance recorded in this period.</div>' : `
+          <table style="margin-top:10px;">
+            <thead><tr><th>#</th><th>Name</th><th>Expected</th><th>Confirmed</th><th>Rate</th><th>Streak</th><th>Change</th></tr></thead>
+            <tbody>
+              ${rows.map((p, i) => `
+                <tr>
+                  <td class="rank">${i + 1}</td>
+                  <td>${p.name}</td>
+                  <td>${fmtInt(p.expected)}</td>
+                  <td>${fmtInt(p.confirmed)}</td>
+                  <td class="rate ${rateClass(p.rate_pct)}">${p.rate_pct}%</td>
+                  <td>${p.consecutive_streak ? fmtInt(p.consecutive_streak) : '—'}</td>
+                  <td>${p.most_improved_delta != null ? (p.most_improved_delta >= 0 ? '+' : '') + Math.round(p.most_improved_delta * 100) + 'pp' : '—'}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>`}
+        </div>
+      `;
+    }
+
+    // ---------- Events ----------
+    async function loadEvents() {
+      const el = document.getElementById('panel-events');
+      el.innerHTML = '<div class="loading">Loading…</div>';
+      const { data, error } = await sb.from('events')
+        .select('id, name, status, start_at, domain, ticketing_mode')
+        .eq('org_id', state.orgId)
+        .order('start_at', { ascending: false })
+        .limit(50);
+      if (error) { el.innerHTML = '<div class="card">Could not load events.</div>'; return; }
+      const rows = data || [];
+      el.innerHTML = `
+        <div class="card">
+          <h2>Events</h2>
+          ${rows.length === 0 ? '<div class="empty">No events yet.</div>' : `
+          <table>
+            <thead><tr><th>Event</th><th>Date</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              ${rows.map(e => `
+                <tr class="${e.ticketing_mode === 'ticket_types' ? 'clickable' : ''}" data-event-id="${e.id}" data-ticketed="${e.ticketing_mode === 'ticket_types'}">
+                  <td>${e.name}</td>
+                  <td>${fmtDateTime(e.start_at)}</td>
+                  <td><span class="badge ${e.status === 'published' || e.status === 'live' ? 'active' : 'neutral'}">${e.status}</span></td>
+                  <td>${e.ticketing_mode === 'ticket_types' ? '<span class="back-link">View analytics &rarr;</span>' : ''}</td>
+                </tr>`).join('')}
+            </tbody>
+          </table>`}
+        </div>
+        <div id="event-detail"></div>
+      `;
+      el.querySelectorAll('tr[data-ticketed="true"]').forEach(row => {
+        row.addEventListener('click', () => showEventDetail(row.dataset.eventId));
+      });
+    }
+
+    async function showEventDetail(eventId) {
+      const detail = document.getElementById('event-detail');
+      detail.innerHTML = '<div class="loading">Loading…</div>';
+      const { data, error } = await sb.rpc('get_event_overview_analytics', { p_event_id: eventId });
+      const row = Array.isArray(data) ? data[0] : data;
+      if (error || !row) { detail.innerHTML = '<div class="card">Could not load this event\'s analytics.</div>'; return; }
+      detail.innerHTML = `
+        <span class="back-link" id="event-back">&larr; Back to events</span>
+        <div class="stat-row">
+          <div class="stat-card"><div class="label">Tickets sold</div><div class="value">${fmtInt(row.tickets_sold)}${row.tickets_capacity ? ' / ' + fmtInt(row.tickets_capacity) : ''}</div><div class="sub">${row.capacity_utilization_pct != null ? row.capacity_utilization_pct + '% capacity' : 'No capacity limit'}</div></div>
+          <div class="stat-card"><div class="label">Revenue</div><div class="value">${koboToNaira(row.gross_revenue_kobo, row.currency)}</div><div class="sub">${koboToNaira(row.discounts_given_kobo, row.currency)} in discounts</div></div>
+          <div class="stat-card"><div class="label">Check-ins</div><div class="value">${fmtInt(row.checked_in_count)} / ${fmtInt(row.eligible_for_checkin)}</div><div class="sub">${row.checkin_rate_pct != null ? row.checkin_rate_pct + '% check-in rate' : ''}</div></div>
+          <div class="stat-card"><div class="label">No-shows</div><div class="value">${fmtInt(row.no_show_count)}</div><div class="sub">${fmtInt(row.payments_failed)} failed payments</div></div>
+        </div>
+        <div class="card">
+          <h2>Registrations</h2>
+          <table><tbody>
+            <tr><td>Total</td><td>${fmtInt(row.total_registrations)}</td></tr>
+            <tr><td>Confirmed</td><td>${fmtInt(row.confirmed_registrations)}</td></tr>
+            <tr><td>Pending</td><td>${fmtInt(row.pending_registrations)}</td></tr>
+            <tr><td>Cancelled</td><td>${fmtInt(row.cancelled_registrations)}</td></tr>
+            <tr><td>Waitlisted</td><td>${fmtInt(row.waitlisted_registrations)}</td></tr>
+          </tbody></table>
+        </div>
+      `;
+      document.getElementById('event-back').addEventListener('click', () => { detail.innerHTML = ''; });
+    }
+
+    // ---------- wire-up ----------
+    document.getElementById('login-btn').addEventListener('click', attemptLogin);
+    document.getElementById('login-password').addEventListener('keydown', e => { if (e.key === 'Enter') attemptLogin(); });
+    document.getElementById('signout-btn').addEventListener('click', async () => {
+      await sb.auth.signOut();
+      location.reload();
+    });
+
+    sb.auth.getSession().then(({ data }) => {
+      if (data.session) enterApp();
+    });
+  </script>
+</body>
+</html>
