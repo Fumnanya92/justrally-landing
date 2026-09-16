@@ -202,6 +202,12 @@
     .badge.inactive { background: rgba(179,38,30,.1); color: var(--danger); }
     .badge.neutral { background: var(--surface-2); color: var(--muted); }
     .note { font-size: 12px; color: var(--muted); line-height: 1.5; margin-top: 10px; }
+    .attention-list { display: flex; flex-direction: column; gap: 12px; }
+    .attention-row { display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--text); font-weight: 500; }
+    .attention-row .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .attention-row .dot.warn { background: var(--warn); }
+    .attention-row .dot.bad { background: var(--danger); }
+    .attention-row .dot.info { background: var(--accent); }
     .back-link { color: var(--accent); cursor: pointer; font-size: 13.5px; margin-bottom: 16px; display: inline-block; font-weight: 600; }
     .empty { color: var(--muted); font-size: 13.5px; padding: 24px 0; text-align: center; }
     .loading { color: var(--muted); font-size: 13.5px; padding: 44px 0; text-align: center; }
@@ -417,7 +423,7 @@
       el.innerHTML = '<div class="loading">Loading…</div>';
       const { startIso, endIso } = periodRange(state.days);
 
-      const [peopleRes, summaryRes, comparisonRes, trendRes, branchRes, boardRes, eventsCountRes, tasksRes] = await Promise.all([
+      const [peopleRes, summaryRes, comparisonRes, trendRes, branchRes, boardRes, eventsCountRes, tasksRes, pendingRegRes, pendingExcuseRes] = await Promise.all([
         sb.rpc('get_org_people_analytics', { p_org_id: state.orgId }),
         sb.rpc('get_attendance_summary', { p_scope_type: 'org', p_scope_id: state.orgId, p_start: startIso, p_end: endIso }),
         sb.rpc('get_attendance_comparison', { p_scope_type: 'org', p_scope_id: state.orgId, p_start: startIso, p_end: endIso }).then(r => r, () => ({ data: null })),
@@ -426,6 +432,8 @@
         sb.rpc('get_people_leaderboard', { p_scope_type: 'org', p_scope_id: state.orgId, p_start: startIso, p_end: endIso, p_limit: 5 }),
         sb.from('events').select('id', { count: 'exact', head: true }).eq('org_id', state.orgId).gte('start_at', new Date().toISOString()),
         sb.rpc('get_org_task_counts', { p_org_id: state.orgId }).then(r => r, () => ({ data: null })),
+        sb.from('member_registration_requests').select('id', { count: 'exact', head: true }).eq('organization_id', state.orgId).eq('status', 'pending'),
+        sb.from('excuse_requests').select('id', { count: 'exact', head: true }).eq('organization_id', state.orgId).eq('status', 'pending'),
       ]);
 
       const people = peopleRes.data || {};
@@ -436,6 +444,9 @@
       const board = boardRes.data || [];
       const upcomingEvents = eventsCountRes.count ?? 0;
       const tasks = tasksRes.data;
+      const pendingRegs = pendingRegRes.count ?? 0;
+      const pendingExcuses = pendingExcuseRes.count ?? 0;
+      const overdueTasks = tasks?.overdue ?? 0;
 
       // Attendance gets a real period-over-period delta (already computed
       // server-side by get_attendance_comparison); other stats show a
@@ -468,6 +479,16 @@
             <div class="sub">${tasks ? `${fmtInt(tasks.overdue)} overdue` : 'Not available'}</div>
           </div>
         </div>
+
+        ${(pendingRegs + pendingExcuses + overdueTasks) > 0 ? `
+        <div class="card needs-attention">
+          <div class="card-head"><h2>Needs attention</h2></div>
+          <div class="attention-list">
+            ${pendingRegs > 0 ? `<div class="attention-row"><span class="dot warn"></span>${fmtInt(pendingRegs)} registration request${pendingRegs === 1 ? '' : 's'} awaiting review</div>` : ''}
+            ${pendingExcuses > 0 ? `<div class="attention-row"><span class="dot info"></span>${fmtInt(pendingExcuses)} excuse${pendingExcuses === 1 ? '' : 's'} awaiting review</div>` : ''}
+            ${overdueTasks > 0 ? `<div class="attention-row"><span class="dot bad"></span>${fmtInt(overdueTasks)} overdue task${overdueTasks === 1 ? '' : 's'}</div>` : ''}
+          </div>
+        </div>` : ''}
 
         <div class="grid-2">
           <div class="card">
