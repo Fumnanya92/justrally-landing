@@ -4,9 +4,9 @@
   <meta charset="UTF-8" />
   <script>(function(){try{var t=localStorage.getItem('rally-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Review &amp; Sign — Rally</title>
+  <title>Review &amp; Sign: Rally</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:ital,wght@1,500;1,600&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -57,7 +57,10 @@
     .pill-warn { background: var(--warn-bg); color: var(--warn-text); }
     .pill-success { background: var(--success-bg); color: var(--success-text); }
 
-    .pdf-frame { width: 100%; height: 60vh; min-height: 360px; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
+    .pdf-frame { width: 100%; height: 80vh; min-height: 480px; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
+    .pdf-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; font-size: 12px; color: var(--muted); }
+    .pdf-meta a { color: var(--accent); font-weight: 600; text-decoration: none; }
+    .pdf-meta a:hover { text-decoration: underline; }
 
     .field { margin-bottom: 16px; }
     .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
@@ -82,6 +85,9 @@
     .sig-tab.is-active { background: var(--navy); color: #fff; border-color: var(--navy); }
     #sig-canvas { width: 100%; height: 140px; border: 1px dashed var(--border); border-radius: 10px; background: #fff; touch-action: none; }
     .sig-typed input { width: 100%; padding: 14px; font-size: 24px; font-family: 'Brush Script MT', cursive, 'Inter'; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--text); }
+    .sig-rally { border: 1px solid var(--border); border-radius: 10px; background: #fff; padding: 4px; }
+    .sig-rally canvas { display: block; width: 100%; height: 148px; }
+    .sig-rally-hint { font-size: 11px; color: var(--muted); margin-top: 8px; }
     .sig-clear { font-size: 12px; color: var(--muted); background: none; border: none; cursor: pointer; margin-top: 6px; text-decoration: underline; }
 
     .btn {
@@ -169,15 +175,20 @@
       <div class="card">
         <div class="pill pill-warn" id="status-pill">Awaiting your signature</div>
         <h1 id="doc-title"></h1>
-        <p class="sub" id="doc-hint">No account needed — review, fill in, and sign below.</p>
+        <p class="sub" id="doc-hint">No account needed. Review, fill in, and sign below.</p>
       </div>
 
       <div class="card">
         <iframe id="pdf-frame" class="pdf-frame" title="Document preview"></iframe>
+        <div class="pdf-meta">
+          <span id="pdf-page-count"></span>
+          <a id="pdf-open-link" href="#" target="_blank" rel="noopener">Open full document in a new tab &rarr;</a>
+        </div>
       </div>
 
       <div class="card">
-        <h1 style="font-size:16px; margin-bottom:14px;">Your information</h1>
+        <h1 style="font-size:16px; margin-bottom:4px;">Your information</h1>
+        <p class="sub" id="fields-count-hint" style="margin-bottom:14px;"></p>
         <div id="fields-container"></div>
       </div>
 
@@ -344,6 +355,7 @@
           <div class="sig-tabs">
             <div class="sig-tab is-active" data-mode="draw" data-field="${field.id}">Draw</div>
             <div class="sig-tab" data-mode="type" data-field="${field.id}">Type</div>
+            <div class="sig-tab" data-mode="rally" data-field="${field.id}">Rally Signature</div>
           </div>
           <div class="sig-draw" id="sig-draw-${field.id}">
             <canvas id="sig-canvas-${field.id}"></canvas>
@@ -352,6 +364,10 @@
           <div class="sig-typed" id="sig-typed-${field.id}" hidden>
             <input type="text" id="sig-typed-input-${field.id}" placeholder="Type your ${field.field_type === 'initials' ? 'initials' : 'full name'}" />
           </div>
+          <div class="sig-rally" id="sig-rally-${field.id}" hidden>
+            <canvas id="sig-rally-canvas-${field.id}"></canvas>
+          </div>
+          <p class="sig-rally-hint" id="sig-rally-hint-${field.id}" hidden>Generated from your name on file. Tap "Draw" or "Type" instead if you'd rather sign by hand.</p>
           <div class="error-text" id="sig-error-${field.id}">${field.field_type === 'initials' ? 'Initials are' : 'A signature is'} required.</div>
         </div>`;
     }
@@ -403,6 +419,112 @@
       });
     }
 
+    // Renders the one-tap "Rally Signature" mark: a checkmark eyebrow plus
+    // the recipient's name, given a debossed/engraved look (rather than
+    // flat printed text) by stacking a dark shadow offset up-left and a
+    // light highlight offset down-right behind a semi-transparent fill, so
+    // the edges read as pressed into the page instead of sitting on it.
+    // Produces a real PNG (via toDataURL) stored exactly like a hand-drawn
+    // signature — signatures.method='rally_stamp' just tags it distinctly
+    // for the audit trail.
+    function drawRallyStamp(fieldId, fieldType) {
+      const canvas = document.getElementById('sig-rally-canvas-' + fieldId);
+      const fullName = ((session && session.recipientName) || '').trim();
+      const name = fieldType === 'initials' && fullName
+        ? fullName.split(' ').filter(Boolean).map((w) => w[0].toUpperCase()).join('')
+        : fullName;
+      const dpr = window.devicePixelRatio || 1;
+      // The canvas's own rendered width, not its padded parent's — using
+      // the parent's clientWidth here previously overstated the canvas by
+      // the .sig-rally container's padding, so text fit-width math was
+      // computed against a wider box than the canvas actually displays at,
+      // clipping names at the edge.
+      const rect = canvas.getBoundingClientRect();
+      const cssW = rect.width || canvas.clientWidth || canvas.parentElement.clientWidth || 300;
+      const cssH = 148;
+      canvas.width = cssW * dpr;
+      canvas.height = cssH * dpr;
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, cssW, cssH);
+
+      const cx = cssW / 2;
+      const cy = cssH / 2;
+
+      function embossed(text, x, y, font, color) {
+        ctx.font = font;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = 'rgba(255,255,255,0.8)';
+        ctx.fillText(text, x + 1.5, y + 1.8);
+        ctx.fillStyle = 'rgba(0,6,102,0.4)';
+        ctx.fillText(text, x - 1.5, y - 1.5);
+        ctx.fillStyle = color;
+        ctx.fillText(text, x, y);
+      }
+
+      embossed('✓  RALLY SIGNED', cx, cy - 30, '700 13px Inter, system-ui, sans-serif', 'rgba(185,143,0,0.92)');
+
+      // Extra margin beyond plain text-width padding accounts for the
+      // emboss offset copies drawn slightly wider/taller than the base fill.
+      const nameText = name || 'Your name';
+      const maxNameWidth = cssW - 40;
+      const minSingleLineSize = 16;
+      let nameFontSize = 28;
+      ctx.font = `italic 600 ${nameFontSize}px Fraunces, Georgia, serif`;
+      while (nameFontSize > minSingleLineSize && ctx.measureText(nameText).width > maxNameWidth) {
+        nameFontSize -= 1;
+        ctx.font = `italic 600 ${nameFontSize}px Fraunces, Georgia, serif`;
+      }
+
+      if (ctx.measureText(nameText).width <= maxNameWidth) {
+        embossed(nameText, cx, cy + 20, `italic 600 ${nameFontSize}px Fraunces, Georgia, serif`, 'rgba(0,6,102,0.88)');
+      } else {
+        // Still too wide even at the minimum single-line size (a long
+        // full name in a narrow field) — wrap onto two lines, breaking at
+        // the space nearest the middle, rather than clip or shrink past
+        // legibility.
+        const words = nameText.split(' ');
+        let line1 = nameText;
+        let line2 = '';
+        if (words.length > 1) {
+          let bestSplit = 1;
+          let bestDiff = Infinity;
+          for (let i = 1; i < words.length; i++) {
+            const a = words.slice(0, i).join(' ');
+            const b = words.slice(i).join(' ');
+            const diff = Math.abs(a.length - b.length);
+            if (diff < bestDiff) { bestDiff = diff; bestSplit = i; }
+          }
+          line1 = words.slice(0, bestSplit).join(' ');
+          line2 = words.slice(bestSplit).join(' ');
+        }
+        let wrapFontSize = 20;
+        ctx.font = `italic 600 ${wrapFontSize}px Fraunces, Georgia, serif`;
+        while (wrapFontSize > 13 &&
+            (ctx.measureText(line1).width > maxNameWidth || ctx.measureText(line2).width > maxNameWidth)) {
+          wrapFontSize -= 1;
+          ctx.font = `italic 600 ${wrapFontSize}px Fraunces, Georgia, serif`;
+        }
+        const font = `italic 600 ${wrapFontSize}px Fraunces, Georgia, serif`;
+        embossed(line1, cx, cy + 10, font, 'rgba(0,6,102,0.88)');
+        if (line2) embossed(line2, cx, cy + 10 + wrapFontSize + 4, font, 'rgba(0,6,102,0.88)');
+      }
+
+      ctx.strokeStyle = 'rgba(0,6,102,0.16)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(cx - 70, cy + 44);
+      ctx.lineTo(cx + 70, cy + 44);
+      ctx.stroke();
+
+      if (name) {
+        signatureState[fieldId] = { method: 'rally_stamp', dataUrl: canvas.toDataURL('image/png') };
+      } else {
+        delete signatureState[fieldId];
+      }
+    }
+
     function setupSignatureField(field) {
       setupCanvas(field.id);
       const tabs = document.querySelectorAll(`.sig-tab[data-field="${field.id}"]`);
@@ -413,6 +535,11 @@
           const mode = tab.dataset.mode;
           document.getElementById('sig-draw-' + field.id).hidden = mode !== 'draw';
           document.getElementById('sig-typed-' + field.id).hidden = mode !== 'type';
+          document.getElementById('sig-rally-' + field.id).hidden = mode !== 'rally';
+          document.getElementById('sig-rally-hint-' + field.id).hidden = mode !== 'rally';
+          if (mode === 'rally') {
+            requestAnimationFrame(() => drawRallyStamp(field.id, field.field_type));
+          }
         });
       });
       document.getElementById('sig-typed-input-' + field.id).addEventListener('input', (e) => {
@@ -426,9 +553,18 @@
       const regular = fields.filter((f) => f.field_type !== 'signature' && f.field_type !== 'initials');
       const sigs = fields.filter((f) => f.field_type === 'signature' || f.field_type === 'initials');
 
+      const requiredCount = fields.filter((f) => f.required).length;
+      const countHint = document.getElementById('fields-count-hint');
+      if (regular.length === 0) {
+        countHint.textContent = '';
+      } else {
+        countHint.textContent = `You have ${regular.length} field${regular.length === 1 ? '' : 's'} to fill in below` +
+          (requiredCount > 0 ? ` (${requiredCount} required, marked with *).` : '.');
+      }
+
       document.getElementById('fields-container').innerHTML =
         regular.map((f) => (RENDERERS[f.field_type] || renderTextField)(f)).join('') ||
-        '<p class="sub">Nothing to fill in — just review and sign below.</p>';
+        '<p class="sub">Nothing to fill in. Just review and sign below.</p>';
 
       document.getElementById('signature-fields-container').innerHTML =
         sigs.map(renderSignatureField).join('') || '<p class="sub">No signature required.</p>';
@@ -534,6 +670,10 @@
 
       document.getElementById('doc-title').textContent = session.documentTitle;
       document.getElementById('pdf-frame').src = session.pdfUrl;
+      document.getElementById('pdf-open-link').href = session.pdfUrl;
+      document.getElementById('pdf-page-count').textContent = session.pageCount
+        ? `${session.pageCount} page${session.pageCount === 1 ? '' : 's'}. Scroll within the box above to see them all.`
+        : '';
       renderFields(session.fields || []);
       show('sign-view');
 
