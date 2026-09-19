@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <script>(function(){try{var t=localStorage.getItem('rally-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Review &amp; Sign — Rally</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #f5f6fa; --surface: #ffffff; --border: #e4e6ea;
+      --navy: #000666; --gold: #FCD400; --accent: var(--navy);
+      --text: #191c1e; --muted: #5a5c6b;
+      --success-bg: #e8f5e9; --success-text: #005313;
+      --warn-bg: #fff3e0; --warn-text: #ef6c00;
+      --danger-bg: #fdeaea; --danger-text: #b3261e;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg: #0a0b1a; --surface: #12132b; --border: #262842;
+        --accent: #8b93ff;
+        --text: #eef0fa; --muted: #9294b0;
+        --success-bg: #163523; --success-text: #6fe3a0;
+        --warn-bg: #3a2a12; --warn-text: #f2b355;
+        --danger-bg: #3a1416; --danger-text: #ff9a94;
+      }
+    }
+    :root[data-theme="dark"] {
+      --bg: #0a0b1a; --surface: #12132b; --border: #262842;
+      --accent: #8b93ff;
+      --text: #eef0fa; --muted: #9294b0;
+      --success-bg: #163523; --success-text: #6fe3a0;
+      --warn-bg: #3a2a12; --warn-text: #f2b355;
+      --danger-bg: #3a1416; --danger-text: #ff9a94;
+    }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh;
+      padding: 24px 16px 80px;
+    }
+    .wrap { max-width: 640px; width: 100%; margin: 0 auto; }
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 24px 20px; margin-bottom: 16px;
+      box-shadow: 0 1px 2px rgba(0,6,102,.06), 0 12px 32px -16px rgba(0,6,102,.18);
+    }
+    .logo { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 20px; font-weight: 900; letter-spacing: -1px; margin: 8px 0 20px; color: var(--accent); }
+    .logo img { width: 28px; height: 28px; border-radius: 7px; }
+
+    h1 { font-size: 19px; font-weight: 800; margin-bottom: 4px; }
+    .sub { font-size: 13px; color: var(--muted); margin-bottom: 2px; }
+
+    .pill { display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; padding: 5px 12px; border-radius: 999px; margin-bottom: 10px; }
+    .pill-warn { background: var(--warn-bg); color: var(--warn-text); }
+    .pill-success { background: var(--success-bg); color: var(--success-text); }
+
+    .pdf-frame { width: 100%; height: 60vh; min-height: 360px; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
+
+    .field { margin-bottom: 16px; }
+    .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+    .field label .req { color: var(--danger-text); }
+    .field .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .field input[type=text], .field input[type=email], .field input[type=tel],
+    .field input[type=number], .field input[type=date], .field textarea, .field select {
+      width: 100%; padding: 12px 14px; border-radius: 10px;
+      border: 1px solid var(--border); background: var(--bg); color: var(--text);
+      font-family: inherit; font-size: 15px;
+    }
+    .field textarea { min-height: 80px; resize: vertical; }
+    .field.error input, .field.error textarea, .field.error select { border-color: var(--danger-text); }
+    .field .error-text { display: none; font-size: 12px; color: var(--danger-text); margin-top: 4px; }
+    .field.error .error-text { display: block; }
+
+    .choice-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; font-size: 14px; }
+    .choice-row input { width: 18px; height: 18px; flex-shrink: 0; }
+
+    .sig-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+    .sig-tab { flex: 1; padding: 8px; text-align: center; font-size: 13px; font-weight: 600; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--muted); cursor: pointer; }
+    .sig-tab.is-active { background: var(--navy); color: #fff; border-color: var(--navy); }
+    #sig-canvas { width: 100%; height: 140px; border: 1px dashed var(--border); border-radius: 10px; background: #fff; touch-action: none; }
+    .sig-typed input { width: 100%; padding: 14px; font-size: 24px; font-family: 'Brush Script MT', cursive, 'Inter'; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--text); }
+    .sig-clear { font-size: 12px; color: var(--muted); background: none; border: none; cursor: pointer; margin-top: 6px; text-decoration: underline; }
+
+    .btn {
+      display: block; width: 100%;
+      background: var(--navy); color: #fff;
+      border: none; border-radius: 12px;
+      padding: 15px; font-size: 16px; font-weight: 700;
+      cursor: pointer; text-decoration: none;
+      transition: opacity .15s;
+    }
+    .btn:hover { opacity: .85; }
+    .btn:disabled { opacity: .55; cursor: not-allowed; }
+    .btn-outline {
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border); border-radius: 12px;
+      padding: 14px; font-size: 14px; font-weight: 600;
+      cursor: pointer; text-decoration: none;
+      display: block; width: 100%; margin-top: 10px;
+    }
+
+    .banner { border-radius: 12px; padding: 12px 14px; font-size: 13px; margin: 16px 0; line-height: 1.5; }
+    .banner-muted { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+    .banner-danger { background: var(--danger-bg); color: var(--danger-text); }
+    .banner-success { background: var(--success-bg); color: var(--success-text); }
+    #loading { text-align: center; color: var(--muted); font-size: 14px; padding: 60px 0; }
+    [hidden] { display: none !important; }
+
+    .consent-row { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.5; color: var(--muted); margin: 16px 0; }
+    .consent-row input { width: 18px; height: 18px; margin-top: 2px; flex-shrink: 0; }
+
+    .step-track { display: flex; gap: 4px; margin-bottom: 16px; }
+    .step-dot { flex: 1; height: 4px; border-radius: 2px; background: var(--border); }
+    .step-dot.done { background: var(--accent); }
+
+    .missing-list { font-size: 13px; margin-top: 6px; }
+    .missing-list li { margin-left: 18px; }
+
+    .theme-toggle-wrap { position: fixed; top: 16px; right: 16px; z-index: 300; }
+    .theme-toggle { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface); color: var(--muted); cursor: pointer; padding: 0; }
+    .theme-toggle svg { width: 18px; height: 18px; }
+    .theme-panel { position: absolute; top: calc(100% + 8px); right: 0; z-index: 300; width: 200px; padding: 20px 12px 12px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 20px 48px -16px rgba(0,0,0,.28); }
+    .theme-panel[hidden] { display: none; }
+    .theme-track { position: relative; display: flex; justify-content: space-between; }
+    .theme-track::before { content: ''; position: absolute; left: 0; right: 0; top: 12px; height: 1px; background: var(--border); }
+    .theme-track button { position: relative; z-index: 1; background: none; border: none; cursor: pointer; font-family: inherit; font-size: 11px; font-weight: 500; color: var(--muted); padding: 28px 4px 0; }
+    .theme-track button.is-selected { font-weight: 700; color: var(--text); }
+    .theme-glyph { position: absolute; top: 0; left: 0; width: 20px; height: 20px; color: var(--gold); pointer-events: none; }
+    .theme-glyph svg { width: 20px; height: 20px; }
+  </style>
+</head>
+<body>
+  <div class="theme-toggle-wrap">
+    <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Appearance" aria-haspopup="true" aria-expanded="false"></button>
+    <div id="theme-panel" class="theme-panel" hidden>
+      <div class="theme-track">
+        <button type="button" data-theme-choice="light">Light</button>
+        <button type="button" data-theme-choice="system">Auto</button>
+        <button type="button" data-theme-choice="dark">Dark</button>
+        <span class="theme-glyph" aria-hidden="true"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="logo"><img src="/assets/appicon.png" alt="Rally logo" width="28" height="28" />Rally</div>
+
+    <div id="loading" class="card">Loading document…</div>
+
+    <div id="invalid" class="card" hidden>
+      <p class="banner banner-danger">This signing link is invalid, has been revoked, or has expired. Ask the sender for a new one.</p>
+    </div>
+
+    <div id="declined-view" class="card" hidden>
+      <p class="banner banner-muted">You've declined this document. If that was a mistake, contact the sender for a new link.</p>
+    </div>
+
+    <div id="completed-view" class="card" hidden>
+      <div class="pill pill-success">Completed</div>
+      <h1>You're done</h1>
+      <p class="sub" style="margin-top:8px;">Your document has been successfully submitted. A copy will be sent to your email if one was provided.</p>
+      <p class="sub" style="margin-top:16px;">You can safely close this page.</p>
+    </div>
+
+    <div id="sign-view" hidden>
+      <div class="card">
+        <div class="pill pill-warn" id="status-pill">Awaiting your signature</div>
+        <h1 id="doc-title"></h1>
+        <p class="sub" id="doc-hint">No account needed — review, fill in, and sign below.</p>
+      </div>
+
+      <div class="card">
+        <iframe id="pdf-frame" class="pdf-frame" title="Document preview"></iframe>
+      </div>
+
+      <div class="card">
+        <h1 style="font-size:16px; margin-bottom:14px;">Your information</h1>
+        <div id="fields-container"></div>
+      </div>
+
+      <div class="card">
+        <h1 style="font-size:16px; margin-bottom:12px;">Signature</h1>
+        <div id="signature-fields-container"></div>
+      </div>
+
+      <div id="validation-banner" class="banner banner-danger" hidden>
+        <div>You still have <span id="missing-count"></span> required field(s):</div>
+        <ul class="missing-list" id="missing-list"></ul>
+      </div>
+
+      <div class="card">
+        <div class="consent-row">
+          <input type="checkbox" id="consent-check" />
+          <label for="consent-check">By selecting "Sign &amp; Submit", I confirm that I am signing this document electronically and intend my electronic signature to be associated with this document.</label>
+        </div>
+        <button class="btn" id="submit-btn" type="button">Sign &amp; Submit</button>
+        <button class="btn-outline" id="decline-btn" type="button">Decline to sign</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const FUNCTIONS_URL = 'https://hbghbextytgrpnzbsppz.supabase.co/functions/v1/documents-sign';
+    const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhiZ2hiZXh0eXRncnBuemJzcHB6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0MDIxMDksImV4cCI6MjA3Mzk3ODEwOX0.LXlv55Vm3liQagC-zWAeQ3pl9G_x1lL1zVmq-_uUm24';
+
+    const token = new URLSearchParams(window.location.search).get('token');
+
+    async function callFn(body) {
+      const res = await fetch(FUNCTIONS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ANON_KEY, 'apikey': ANON_KEY },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      return { ok: res.ok, status: res.status, data };
+    }
+
+    let session = null;
+    const signatureState = {}; // fieldId -> { method, dataUrl?, typedText? }
+
+    function show(id) {
+      ['loading', 'invalid', 'declined-view', 'completed-view', 'sign-view'].forEach((x) => {
+        document.getElementById(x).hidden = x !== id;
+      });
+    }
+
+    function fieldLabelHtml(field) {
+      return field.label + (field.required ? ' <span class="req">*</span>' : '');
+    }
+
+    function renderTextField(field) {
+      const type = { email: 'email', phone: 'tel', number: 'number', date: 'date' }[field.field_type] || 'text';
+      return `
+        <div class="field" id="field-${field.id}">
+          <label for="input-${field.id}">${fieldLabelHtml(field)}</label>
+          <input type="${type}" id="input-${field.id}" placeholder="${field.placeholder || ''}" />
+          ${field.instructions ? `<div class="hint">${field.instructions}</div>` : ''}
+          <div class="error-text">This field is required.</div>
+        </div>`;
+    }
+
+    function renderLongText(field) {
+      return `
+        <div class="field" id="field-${field.id}">
+          <label for="input-${field.id}">${fieldLabelHtml(field)}</label>
+          <textarea id="input-${field.id}" placeholder="${field.placeholder || ''}"></textarea>
+          ${field.instructions ? `<div class="hint">${field.instructions}</div>` : ''}
+          <div class="error-text">This field is required.</div>
+        </div>`;
+    }
+
+    function renderCheckbox(field) {
+      return `
+        <div class="field" id="field-${field.id}">
+          <div class="choice-row">
+            <input type="checkbox" id="input-${field.id}" />
+            <label for="input-${field.id}" style="margin:0;">${fieldLabelHtml(field)}</label>
+          </div>
+          <div class="error-text">This must be checked.</div>
+        </div>`;
+    }
+
+    function renderAcknowledgement(field) {
+      return `
+        <div class="field" id="field-${field.id}">
+          <div class="choice-row">
+            <input type="checkbox" id="input-${field.id}" data-ack="1" />
+            <label for="input-${field.id}" style="margin:0;">${field.label}${field.required ? ' <span class="req">*</span>' : ''}</label>
+          </div>
+          <div class="error-text">You must acknowledge this to continue.</div>
+        </div>`;
+    }
+
+    function renderDropdown(field) {
+      const opts = (field.options || []).map((o) => `<option value="${o}">${o}</option>`).join('');
+      return `
+        <div class="field" id="field-${field.id}">
+          <label for="input-${field.id}">${fieldLabelHtml(field)}</label>
+          <select id="input-${field.id}">
+            <option value="">Select…</option>
+            ${opts}
+          </select>
+          <div class="error-text">Please make a selection.</div>
+        </div>`;
+    }
+
+    function renderRadio(field) {
+      const opts = (field.options || []).map((o, i) => `
+        <div class="choice-row">
+          <input type="radio" name="input-${field.id}" id="input-${field.id}-${i}" value="${o}" />
+          <label for="input-${field.id}-${i}" style="margin:0;">${o}</label>
+        </div>`).join('');
+      return `
+        <div class="field" id="field-${field.id}">
+          <label>${fieldLabelHtml(field)}</label>
+          ${opts}
+          <div class="error-text">Please make a selection.</div>
+        </div>`;
+    }
+
+    function renderMultiCheckbox(field) {
+      const opts = (field.options || []).map((o, i) => `
+        <div class="choice-row">
+          <input type="checkbox" name="input-${field.id}" id="input-${field.id}-${i}" value="${o}" />
+          <label for="input-${field.id}-${i}" style="margin:0;">${o}</label>
+        </div>`).join('');
+      return `
+        <div class="field" id="field-${field.id}">
+          <label>${fieldLabelHtml(field)}</label>
+          ${opts}
+          <div class="error-text">Please choose at least one.</div>
+        </div>`;
+    }
+
+    function renderFileUpload(field) {
+      return `
+        <div class="field" id="field-${field.id}">
+          <label for="input-${field.id}">${fieldLabelHtml(field)}</label>
+          <input type="file" id="input-${field.id}" />
+          ${field.instructions ? `<div class="hint">${field.instructions}</div>` : ''}
+          <div class="error-text">Please attach a file.</div>
+        </div>`;
+    }
+
+    const RENDERERS = {
+      short_text: renderTextField, name: renderTextField, email: renderTextField,
+      phone: renderTextField, address: renderTextField, number: renderTextField, date: renderTextField,
+      long_text: renderLongText,
+      checkbox: renderCheckbox,
+      acknowledgement: renderAcknowledgement,
+      dropdown: renderDropdown,
+      radio: renderRadio,
+      multi_checkbox: renderMultiCheckbox,
+      file_upload: renderFileUpload,
+    };
+
+    function renderSignatureField(field) {
+      return `
+        <div class="field" id="field-${field.id}">
+          <label>${fieldLabelHtml(field)}</label>
+          <div class="sig-tabs">
+            <div class="sig-tab is-active" data-mode="draw" data-field="${field.id}">Draw</div>
+            <div class="sig-tab" data-mode="type" data-field="${field.id}">Type</div>
+          </div>
+          <div class="sig-draw" id="sig-draw-${field.id}">
+            <canvas id="sig-canvas-${field.id}"></canvas>
+            <button type="button" class="sig-clear" data-clear="${field.id}">Clear</button>
+          </div>
+          <div class="sig-typed" id="sig-typed-${field.id}" hidden>
+            <input type="text" id="sig-typed-input-${field.id}" placeholder="Type your ${field.field_type === 'initials' ? 'initials' : 'full name'}" />
+          </div>
+          <div class="error-text" id="sig-error-${field.id}">${field.field_type === 'initials' ? 'Initials are' : 'A signature is'} required.</div>
+        </div>`;
+    }
+
+    function setupCanvas(fieldId) {
+      const canvas = document.getElementById('sig-canvas-' + fieldId);
+      const ctx = canvas.getContext('2d');
+      function resize() {
+        // getBoundingClientRect() can read 0x0 here if layout hasn't run yet
+        // for a canvas just inserted via innerHTML in this same tick — fall
+        // back to the parent's width (always laid out, it's an existing
+        // .card) rather than trust the canvas's own rect blindly.
+        const rect = canvas.getBoundingClientRect();
+        const width = rect.width || canvas.parentElement.clientWidth || 300;
+        const height = rect.height || 140;
+        canvas.width = width * devicePixelRatio;
+        canvas.height = height * devicePixelRatio;
+        ctx.scale(devicePixelRatio, devicePixelRatio);
+        ctx.lineWidth = 2.2;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = '#000666';
+      }
+      canvas.style.width = '100%';
+      canvas.style.height = '140px';
+      requestAnimationFrame(resize);
+
+      let drawing = false;
+      let hasDrawn = false;
+      function pos(e) {
+        const rect = canvas.getBoundingClientRect();
+        const p = e.touches ? e.touches[0] : e;
+        return { x: p.clientX - rect.left, y: p.clientY - rect.top };
+      }
+      function start(e) { drawing = true; hasDrawn = true; const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); e.preventDefault(); }
+      function move(e) { if (!drawing) return; const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); e.preventDefault(); }
+      function end() { drawing = false; if (hasDrawn) signatureState[fieldId] = { method: 'draw', dataUrl: canvas.toDataURL('image/png') }; }
+
+      canvas.addEventListener('mousedown', start);
+      canvas.addEventListener('mousemove', move);
+      window.addEventListener('mouseup', end);
+      canvas.addEventListener('touchstart', start, { passive: false });
+      canvas.addEventListener('touchmove', move, { passive: false });
+      canvas.addEventListener('touchend', end);
+
+      document.querySelector(`[data-clear="${fieldId}"]`).addEventListener('click', () => {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        hasDrawn = false;
+        delete signatureState[fieldId];
+      });
+    }
+
+    function setupSignatureField(field) {
+      setupCanvas(field.id);
+      const tabs = document.querySelectorAll(`.sig-tab[data-field="${field.id}"]`);
+      tabs.forEach((tab) => {
+        tab.addEventListener('click', () => {
+          tabs.forEach((t) => t.classList.remove('is-active'));
+          tab.classList.add('is-active');
+          const mode = tab.dataset.mode;
+          document.getElementById('sig-draw-' + field.id).hidden = mode !== 'draw';
+          document.getElementById('sig-typed-' + field.id).hidden = mode !== 'type';
+        });
+      });
+      document.getElementById('sig-typed-input-' + field.id).addEventListener('input', (e) => {
+        const v = e.target.value.trim();
+        if (v) signatureState[field.id] = { method: 'typed', typedText: v };
+        else delete signatureState[field.id];
+      });
+    }
+
+    function renderFields(fields) {
+      const regular = fields.filter((f) => f.field_type !== 'signature' && f.field_type !== 'initials');
+      const sigs = fields.filter((f) => f.field_type === 'signature' || f.field_type === 'initials');
+
+      document.getElementById('fields-container').innerHTML =
+        regular.map((f) => (RENDERERS[f.field_type] || renderTextField)(f)).join('') ||
+        '<p class="sub">Nothing to fill in — just review and sign below.</p>';
+
+      document.getElementById('signature-fields-container').innerHTML =
+        sigs.map(renderSignatureField).join('') || '<p class="sub">No signature required.</p>';
+
+      sigs.forEach(setupSignatureField);
+    }
+
+    function collectFieldValues(fields) {
+      const values = {};
+      const acknowledgements = [];
+      for (const field of fields) {
+        if (field.field_type === 'signature' || field.field_type === 'initials') continue;
+        if (field.field_type === 'acknowledgement') {
+          const el = document.getElementById('input-' + field.id);
+          if (el && el.checked) acknowledgements.push(field.id);
+          continue;
+        }
+        if (field.field_type === 'multi_checkbox') {
+          const checked = Array.from(document.querySelectorAll(`input[name="input-${field.id}"]:checked`)).map((e) => e.value);
+          values[field.id] = checked;
+          continue;
+        }
+        if (field.field_type === 'radio') {
+          const checked = document.querySelector(`input[name="input-${field.id}"]:checked`);
+          values[field.id] = checked ? checked.value : '';
+          continue;
+        }
+        if (field.field_type === 'checkbox') {
+          const el = document.getElementById('input-' + field.id);
+          values[field.id] = el && el.checked ? 'true' : '';
+          continue;
+        }
+        if (field.field_type === 'file_upload') {
+          continue; // handled async below
+        }
+        const el = document.getElementById('input-' + field.id);
+        values[field.id] = el ? el.value.trim() : '';
+      }
+      return { values, acknowledgements };
+    }
+
+    async function collectFileUploads(fields) {
+      const out = {};
+      for (const field of fields) {
+        if (field.field_type !== 'file_upload') continue;
+        const el = document.getElementById('input-' + field.id);
+        const file = el && el.files && el.files[0];
+        if (!file) continue;
+        out[field.id] = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.readAsDataURL(file);
+        });
+      }
+      return out;
+    }
+
+    function clearErrors() {
+      document.querySelectorAll('.field.error').forEach((el) => el.classList.remove('error'));
+      document.getElementById('validation-banner').hidden = true;
+    }
+
+    function validate(fields, values, acknowledgements) {
+      const missing = [];
+      for (const field of fields) {
+        if (!field.required) continue;
+        if (field.field_type === 'signature' || field.field_type === 'initials') {
+          if (!signatureState[field.id]) missing.push({ id: field.id, label: field.label, sig: true });
+        } else if (field.field_type === 'acknowledgement') {
+          if (!acknowledgements.includes(field.id)) missing.push({ id: field.id, label: field.label });
+        } else if (field.field_type === 'multi_checkbox') {
+          if (!values[field.id] || values[field.id].length === 0) missing.push({ id: field.id, label: field.label });
+        } else if (field.field_type === 'file_upload') {
+          const el = document.getElementById('input-' + field.id);
+          if (!el || !el.files || !el.files[0]) missing.push({ id: field.id, label: field.label });
+        } else {
+          if (!values[field.id]) missing.push({ id: field.id, label: field.label });
+        }
+      }
+      return missing;
+    }
+
+    function showValidationErrors(missing) {
+      missing.forEach((m) => {
+        const el = document.getElementById('field-' + m.id);
+        if (el) el.classList.add('error');
+      });
+      const banner = document.getElementById('validation-banner');
+      document.getElementById('missing-count').textContent = missing.length;
+      document.getElementById('missing-list').innerHTML = missing.map((m) => `<li>${m.label}</li>`).join('');
+      banner.hidden = false;
+      banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    async function loadSession() {
+      if (!token) { show('invalid'); return; }
+      const { ok, data } = await callFn({ action: 'session', token });
+      if (!ok) { show('invalid'); return; }
+      session = data;
+
+      if (session.status === 'completed') { show('completed-view'); return; }
+      if (session.status === 'declined') { show('declined-view'); return; }
+
+      document.getElementById('doc-title').textContent = session.documentTitle;
+      document.getElementById('pdf-frame').src = session.pdfUrl;
+      renderFields(session.fields || []);
+      show('sign-view');
+
+      callFn({ action: 'start', token }).catch(() => {});
+    }
+
+    document.getElementById('submit-btn').addEventListener('click', async () => {
+      if (!document.getElementById('consent-check').checked) {
+        alert('Please check the consent box before signing.');
+        return;
+      }
+      clearErrors();
+      const fields = session.fields || [];
+      const { values, acknowledgements } = collectFieldValues(fields);
+      const missing = validate(fields, values, acknowledgements);
+      if (missing.length > 0) { showValidationErrors(missing); return; }
+
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      btn.textContent = 'Submitting…';
+
+      const fileValues = await collectFileUploads(fields);
+      const fieldValues = { ...values, ...fileValues };
+
+      const { ok, data } = await callFn({
+        action: 'submit',
+        token,
+        fieldValues,
+        signatures: signatureState,
+        acknowledgements,
+        consentText: document.querySelector('.consent-row label').textContent.trim(),
+      });
+
+      if (!ok) {
+        btn.disabled = false;
+        btn.textContent = 'Sign & Submit';
+        if (data && data.error === 'missing_required_fields') {
+          showValidationErrors((data.fields || []).map((label) => ({ id: '', label })));
+        } else {
+          alert('Something went wrong submitting your document. Please try again.');
+        }
+        return;
+      }
+      show('completed-view');
+    });
+
+    document.getElementById('decline-btn').addEventListener('click', async () => {
+      const reason = prompt('Optional: let the sender know why you\'re declining.');
+      if (reason === null) return;
+      await callFn({ action: 'decline', token, reason });
+      show('declined-view');
+    });
+
+    loadSession();
+  </script>
+  <script src="/assets/theme.js" defer></script>
+</body>
+</html>
