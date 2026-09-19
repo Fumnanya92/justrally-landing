@@ -7,6 +7,7 @@
   <title>Review &amp; Sign: Rally</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:ital,wght@1,500;1,600&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -57,10 +58,22 @@
     .pill-warn { background: var(--warn-bg); color: var(--warn-text); }
     .pill-success { background: var(--success-bg); color: var(--success-text); }
 
-    .pdf-frame { width: 100%; height: 80vh; min-height: 480px; border: 1px solid var(--border); border-radius: 12px; background: #fff; }
-    .pdf-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; font-size: 12px; color: var(--muted); }
+    .pdf-meta { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: -8px 0 16px; font-size: 12px; color: var(--muted); }
     .pdf-meta a { color: var(--accent); font-weight: 600; text-decoration: none; }
     .pdf-meta a:hover { text-decoration: underline; }
+
+    /* Each rendered page sits directly on the page (no card chrome) with
+       its fields overlaid at their real placed positions, so filling one
+       in happens right where the sender put it instead of in a
+       disconnected list below a static preview. */
+    #pdf-pages { margin-bottom: 8px; }
+    .pdf-page-wrap {
+      position: relative; margin-bottom: 20px; border-radius: 12px; overflow: hidden;
+      box-shadow: 0 1px 2px rgba(0,6,102,.06), 0 12px 32px -16px rgba(0,6,102,.18);
+      background: #fff;
+    }
+    .pdf-page-canvas { display: block; width: 100%; height: auto; }
+    .field-overlay { position: absolute; inset: 0; }
 
     .field { margin-bottom: 16px; }
     .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
@@ -77,18 +90,66 @@
     .field .error-text { display: none; font-size: 12px; color: var(--danger-text); margin-top: 4px; }
     .field.error .error-text { display: block; }
 
+    /* A field placed on the document is usually much smaller than a
+       comfortable input, so this floats the label above the box (like an
+       annotation tag) and gives the input itself a sane minimum size
+       rather than shrinking to the sender's exact placed rectangle. */
+    .overlay-input-box {
+      position: absolute; margin: 0 !important; min-height: 26px; min-width: 64px;
+    }
+    .overlay-input-box label {
+      position: absolute; bottom: 100%; left: 0; margin-bottom: 3px !important;
+      font-size: 10px; font-weight: 700; color: var(--accent); white-space: nowrap;
+      background: var(--surface); padding: 1px 5px; border-radius: 5px; z-index: 2;
+      box-shadow: 0 1px 3px rgba(0,0,0,.15);
+    }
+    .overlay-input-box input, .overlay-input-box select, .overlay-input-box textarea {
+      width: 100%; height: 100%; min-height: 26px; font-size: 12px; padding: 3px 7px;
+      border: 1.5px solid var(--accent); border-radius: 5px; background: rgba(255,255,255,.94); color: #191c1e;
+    }
+    .overlay-input-box textarea { min-height: 44px; resize: vertical; }
+    .overlay-input-box .choice-row { position: absolute; top: 0; left: 0; background: rgba(255,255,255,.94); border: 1.5px solid var(--accent); border-radius: 5px; padding: 2px 6px; font-size: 11px; white-space: nowrap; }
+    .overlay-input-box .hint { position: absolute; top: 100%; left: 0; margin-top: 2px; white-space: nowrap; font-size: 9px; background: var(--surface); padding: 1px 4px; border-radius: 4px; z-index: 2; }
+    .overlay-input-box .error-text { position: absolute; top: 100%; left: 0; margin-top: 2px; white-space: nowrap; font-size: 9px; background: var(--surface); padding: 1px 4px; border-radius: 4px; z-index: 2; }
+    .overlay-input-box.error input, .overlay-input-box.error select, .overlay-input-box.error textarea { border-color: var(--danger-text); }
+
+    .overlay-sig-chip {
+      position: absolute; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 1px; min-height: 32px; min-width: 84px; padding: 3px;
+      border: 1.5px dashed var(--accent); border-radius: 6px; background: rgba(255,255,255,.94);
+      cursor: pointer; text-align: center;
+    }
+    .overlay-sig-chip .sig-chip-label { font-size: 9px; font-weight: 700; color: var(--accent); line-height: 1.2; }
+    .overlay-sig-chip .sig-chip-status { font-size: 10px; color: var(--muted); line-height: 1.2; }
+    .overlay-sig-chip.is-signed { border-style: solid; border-color: var(--success-text); background: var(--success-bg); }
+    .overlay-sig-chip.is-signed .sig-chip-status { color: var(--success-text); font-weight: 700; }
+    .overlay-sig-chip.error { border-color: var(--danger-text); }
+
     .choice-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; font-size: 14px; }
     .choice-row input { width: 18px; height: 18px; flex-shrink: 0; }
 
     .sig-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
     .sig-tab { flex: 1; padding: 8px; text-align: center; font-size: 13px; font-weight: 600; border-radius: 8px; border: 1px solid var(--border); background: var(--bg); color: var(--muted); cursor: pointer; }
     .sig-tab.is-active { background: var(--navy); color: #fff; border-color: var(--navy); }
-    #sig-canvas { width: 100%; height: 140px; border: 1px dashed var(--border); border-radius: 10px; background: #fff; touch-action: none; }
+    #sig-canvas, [id^="sig-canvas-"] { width: 100%; height: 140px; border: 1px dashed var(--border); border-radius: 10px; background: #fff; touch-action: none; }
     .sig-typed input { width: 100%; padding: 14px; font-size: 24px; font-family: 'Brush Script MT', cursive, 'Inter'; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--text); }
     .sig-rally { border: 1px solid var(--border); border-radius: 10px; background: #fff; padding: 4px; }
     .sig-rally canvas { display: block; width: 100%; height: 148px; }
     .sig-rally-hint { font-size: 11px; color: var(--muted); margin-top: 8px; }
     .sig-clear { font-size: 12px; color: var(--muted); background: none; border: none; cursor: pointer; margin-top: 6px; text-decoration: underline; }
+
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(10,11,26,.55); z-index: 400;
+      display: flex; align-items: flex-end; justify-content: center;
+    }
+    .modal-card {
+      width: 100%; max-width: 640px; background: var(--surface); border-radius: 20px 20px 0 0;
+      padding: 20px; padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+      max-height: 85vh; overflow-y: auto;
+    }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+    .modal-header span { font-weight: 800; font-size: 15px; }
+    .modal-close { background: none; border: none; font-size: 24px; line-height: 1; color: var(--muted); cursor: pointer; padding: 4px; }
 
     .btn {
       display: block; width: 100%;
@@ -117,10 +178,6 @@
 
     .consent-row { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.5; color: var(--muted); margin: 16px 0; }
     .consent-row input { width: 18px; height: 18px; margin-top: 2px; flex-shrink: 0; }
-
-    .step-track { display: flex; gap: 4px; margin-bottom: 16px; }
-    .step-dot { flex: 1; height: 4px; border-radius: 2px; background: var(--border); }
-    .step-dot.done { background: var(--accent); }
 
     .missing-list { font-size: 13px; margin-top: 6px; }
     .missing-list li { margin-left: 18px; }
@@ -175,31 +232,38 @@
       <div class="card">
         <div class="pill pill-warn" id="status-pill">Awaiting your signature</div>
         <h1 id="doc-title"></h1>
-        <p class="sub" id="doc-hint">No account needed. Review, fill in, and sign below.</p>
+        <p class="sub" id="doc-hint">No account needed. Fields are shown right where they were placed on the document below.</p>
       </div>
 
-      <div class="card">
-        <iframe id="pdf-frame" class="pdf-frame" title="Document preview"></iframe>
-        <div class="pdf-meta">
-          <span id="pdf-page-count"></span>
-          <a id="pdf-open-link" href="#" target="_blank" rel="noopener">Open full document in a new tab &rarr;</a>
-        </div>
+      <div class="pdf-meta">
+        <span id="pdf-page-count"></span>
+        <a id="pdf-open-link" href="#" target="_blank" rel="noopener">Open full document in a new tab &rarr;</a>
       </div>
+      <p class="sub" id="fields-count-hint" style="margin: -8px 0 16px;"></p>
 
-      <div class="card">
-        <h1 style="font-size:16px; margin-bottom:4px;">Your information</h1>
-        <p class="sub" id="fields-count-hint" style="margin-bottom:14px;"></p>
-        <div id="fields-container"></div>
-      </div>
-
-      <div class="card">
-        <h1 style="font-size:16px; margin-bottom:12px;">Signature</h1>
-        <div id="signature-fields-container"></div>
-      </div>
+      <div id="pdf-pages"></div>
 
       <div id="validation-banner" class="banner banner-danger" hidden>
         <div>You still have <span id="missing-count"></span> required field(s):</div>
         <ul class="missing-list" id="missing-list"></ul>
+      </div>
+
+      <div class="card">
+        <h1 style="font-size:16px; margin-bottom:4px;">Need a witness?</h1>
+        <p class="sub" style="margin-bottom:12px;">Invite someone to witness your signature. They'll get their own link with a short attestation to sign, separate from your own fields.</p>
+        <div id="witness-invite-form" hidden>
+          <div class="field">
+            <label for="witness-name-input">Witness name</label>
+            <input type="text" id="witness-name-input" placeholder="e.g. Jane Doe" />
+          </div>
+          <div class="field">
+            <label for="witness-email-input">Witness email</label>
+            <input type="email" id="witness-email-input" placeholder="e.g. jane@example.com" />
+          </div>
+          <button type="button" class="btn" id="witness-invite-send-btn">Send invite</button>
+        </div>
+        <button type="button" class="btn-outline" id="witness-invite-toggle-btn" style="margin-top:0;">Add a witness</button>
+        <p class="sub" id="witness-invite-status" style="margin-top:10px;"></p>
       </div>
 
       <div class="card">
@@ -211,11 +275,51 @@
         <button class="btn-outline" id="decline-btn" type="button">Decline to sign</button>
       </div>
     </div>
+
+    <!-- Witness view: a short attestation only (spec: "just a short
+         attestation line") — no copy of the actual signer's fields, no
+         full document form. A witness confirms who they watched sign and
+         adds their own signature. -->
+    <div id="witness-view" hidden>
+      <div class="card">
+        <div class="pill pill-warn">Witness request</div>
+        <h1 id="witness-title"></h1>
+        <p class="sub" id="witness-hint" style="margin-top:6px;"></p>
+      </div>
+      <div class="card">
+        <div class="consent-row">
+          <input type="checkbox" id="witness-attest-check" />
+          <label for="witness-attest-check" id="witness-attest-label"></label>
+        </div>
+      </div>
+      <div class="card">
+        <h1 style="font-size:16px; margin-bottom:12px;">Your signature</h1>
+        <div id="witness-signature-container"></div>
+      </div>
+      <div id="witness-validation-banner" class="banner banner-danger" hidden></div>
+      <div class="card">
+        <button class="btn" id="witness-submit-btn" type="button">Confirm &amp; Submit</button>
+        <button class="btn-outline" id="witness-decline-btn" type="button">Decline to witness</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="sig-modal-overlay" class="modal-overlay" hidden>
+    <div class="modal-card">
+      <div class="modal-header">
+        <span id="sig-modal-title"></span>
+        <button type="button" id="sig-modal-close" class="modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div id="sig-modal-body"></div>
+      <button type="button" class="btn" id="sig-modal-done" style="margin-top:14px;">Done</button>
+    </div>
   </div>
 
   <script>
     const FUNCTIONS_URL = 'https://hbghbextytgrpnzbsppz.supabase.co/functions/v1/documents-sign';
     const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhiZ2hiZXh0eXRncnBuemJzcHB6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0MDIxMDksImV4cCI6MjA3Mzk3ODEwOX0.LXlv55Vm3liQagC-zWAeQ3pl9G_x1lL1zVmq-_uUm24';
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
     const token = new URLSearchParams(window.location.search).get('token');
 
@@ -233,13 +337,19 @@
     const signatureState = {}; // fieldId -> { method, dataUrl?, typedText? }
 
     function show(id) {
-      ['loading', 'invalid', 'declined-view', 'completed-view', 'sign-view'].forEach((x) => {
+      ['loading', 'invalid', 'declined-view', 'completed-view', 'sign-view', 'witness-view'].forEach((x) => {
         document.getElementById(x).hidden = x !== id;
       });
     }
 
     function fieldLabelHtml(field) {
       return field.label + (field.required ? ' <span class="req">*</span>' : '');
+    }
+
+    function elementFromHtml(html) {
+      const t = document.createElement('template');
+      t.innerHTML = html.trim();
+      return t.content.firstElementChild;
     }
 
     function renderTextField(field) {
@@ -434,11 +544,6 @@
         ? fullName.split(' ').filter(Boolean).map((w) => w[0].toUpperCase()).join('')
         : fullName;
       const dpr = window.devicePixelRatio || 1;
-      // The canvas's own rendered width, not its padded parent's — using
-      // the parent's clientWidth here previously overstated the canvas by
-      // the .sig-rally container's padding, so text fit-width math was
-      // computed against a wider box than the canvas actually displays at,
-      // clipping names at the edge.
       const rect = canvas.getBoundingClientRect();
       const cssW = rect.width || canvas.clientWidth || canvas.parentElement.clientWidth || 300;
       const cssH = 148;
@@ -465,8 +570,6 @@
 
       embossed('✓  RALLY SIGNED', cx, cy - 30, '700 13px Inter, system-ui, sans-serif', 'rgba(185,143,0,0.92)');
 
-      // Extra margin beyond plain text-width padding accounts for the
-      // emboss offset copies drawn slightly wider/taller than the base fill.
       const nameText = name || 'Your name';
       const maxNameWidth = cssW - 40;
       const minSingleLineSize = 16;
@@ -480,10 +583,6 @@
       if (ctx.measureText(nameText).width <= maxNameWidth) {
         embossed(nameText, cx, cy + 20, `italic 600 ${nameFontSize}px Fraunces, Georgia, serif`, 'rgba(0,6,102,0.88)');
       } else {
-        // Still too wide even at the minimum single-line size (a long
-        // full name in a narrow field) — wrap onto two lines, breaking at
-        // the space nearest the middle, rather than clip or shrink past
-        // legibility.
         const words = nameText.split(' ');
         let line1 = nameText;
         let line2 = '';
@@ -549,27 +648,102 @@
       });
     }
 
-    function renderFields(fields) {
-      const regular = fields.filter((f) => f.field_type !== 'signature' && f.field_type !== 'initials');
-      const sigs = fields.filter((f) => f.field_type === 'signature' || f.field_type === 'initials');
+    // Signature/initials fields render as a small tappable chip at their
+    // placed position (a full Draw/Type/Rally panel doesn't fit in a
+    // placed field's box) — tapping opens that same panel in a modal.
+    function openSignatureModal(field) {
+      document.getElementById('sig-modal-title').textContent = field.label;
+      document.getElementById('sig-modal-body').innerHTML = renderSignatureField(field);
+      setupSignatureField(field);
+      document.getElementById('sig-modal-overlay').hidden = false;
+      const close = () => {
+        document.getElementById('sig-modal-overlay').hidden = true;
+        updateSigChipStatus(field.id);
+      };
+      document.getElementById('sig-modal-done').onclick = close;
+      document.getElementById('sig-modal-close').onclick = close;
+    }
 
-      const requiredCount = fields.filter((f) => f.required).length;
-      const countHint = document.getElementById('fields-count-hint');
-      if (regular.length === 0) {
-        countHint.textContent = '';
+    function updateSigChipStatus(fieldId) {
+      const chip = document.getElementById('field-' + fieldId);
+      const statusEl = document.getElementById('sig-chip-status-' + fieldId);
+      if (!chip || !statusEl) return;
+      chip.classList.remove('error');
+      if (signatureState[fieldId]) {
+        chip.classList.add('is-signed');
+        statusEl.textContent = 'Signed ✓';
       } else {
-        countHint.textContent = `You have ${regular.length} field${regular.length === 1 ? '' : 's'} to fill in below` +
-          (requiredCount > 0 ? ` (${requiredCount} required, marked with *).` : '.');
+        chip.classList.remove('is-signed');
+        statusEl.textContent = 'Tap to sign';
+      }
+    }
+
+    // Renders the PDF page by page onto real canvases (pdf.js) and
+    // overlays each field as an actual input positioned at its placed
+    // pos_x/pos_y/width/height fraction — the recipient fills fields right
+    // where the sender put them, instead of in a disconnected list under a
+    // static preview. Positions are plain CSS percentages of each page's
+    // own box, so they stay aligned at any zoom level for free (native
+    // mobile-browser pinch-zoom, no custom transform math needed).
+    async function renderPdfPages(pdfUrl, fields) {
+      const container = document.getElementById('pdf-pages');
+      container.innerHTML = '<p class="sub" style="text-align:center;padding:24px 0;">Loading document…</p>';
+
+      let pdf;
+      try {
+        pdf = await pdfjsLib.getDocument(pdfUrl).promise;
+      } catch (e) {
+        container.innerHTML = `<p class="banner banner-danger">Could not load the document preview. <a href="${pdfUrl}" target="_blank" rel="noopener">Open it directly instead</a>.</p>`;
+        return;
       }
 
-      document.getElementById('fields-container').innerHTML =
-        regular.map((f) => (RENDERERS[f.field_type] || renderTextField)(f)).join('') ||
-        '<p class="sub">Nothing to fill in. Just review and sign below.</p>';
+      container.innerHTML = '';
+      const dpr = window.devicePixelRatio || 1;
 
-      document.getElementById('signature-fields-container').innerHTML =
-        sigs.map(renderSignatureField).join('') || '<p class="sub">No signature required.</p>';
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const wrap = document.createElement('div');
+        wrap.className = 'pdf-page-wrap';
+        const canvas = document.createElement('canvas');
+        canvas.className = 'pdf-page-canvas';
+        const overlay = document.createElement('div');
+        overlay.className = 'field-overlay';
+        wrap.appendChild(canvas);
+        wrap.appendChild(overlay);
+        container.appendChild(wrap);
 
-      sigs.forEach(setupSignatureField);
+        const containerWidth = wrap.clientWidth || container.clientWidth || 320;
+        const unscaledViewport = page.getViewport({ scale: 1 });
+        const scale = containerWidth / unscaledViewport.width;
+        const viewport = page.getViewport({ scale: scale * dpr });
+
+        canvas.width = Math.round(viewport.width);
+        canvas.height = Math.round(viewport.height);
+        canvas.style.width = containerWidth + 'px';
+        canvas.style.height = (viewport.height / dpr) + 'px';
+
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+
+        const pageFields = fields.filter((f) => f.page_number === pageNum);
+        for (const field of pageFields) {
+          let el;
+          if (field.field_type === 'signature' || field.field_type === 'initials') {
+            el = document.createElement('div');
+            el.id = 'field-' + field.id;
+            el.className = 'overlay-sig-chip';
+            el.innerHTML = `<span class="sig-chip-label">${field.label}${field.required ? ' *' : ''}</span><span class="sig-chip-status" id="sig-chip-status-${field.id}">Tap to sign</span>`;
+            el.addEventListener('click', () => openSignatureModal(field));
+          } else {
+            el = elementFromHtml((RENDERERS[field.field_type] || renderTextField)(field));
+            el.classList.add('overlay-input-box');
+          }
+          el.style.left = (field.pos_x * 100) + '%';
+          el.style.top = (field.pos_y * 100) + '%';
+          el.style.width = (field.width * 100) + '%';
+          el.style.height = (field.height * 100) + '%';
+          overlay.appendChild(el);
+        }
+      }
     }
 
     function collectFieldValues(fields) {
@@ -623,7 +797,7 @@
     }
 
     function clearErrors() {
-      document.querySelectorAll('.field.error').forEach((el) => el.classList.remove('error'));
+      document.querySelectorAll('.field.error, .overlay-sig-chip.error').forEach((el) => el.classList.remove('error'));
       document.getElementById('validation-banner').hidden = true;
     }
 
@@ -648,15 +822,21 @@
     }
 
     function showValidationErrors(missing) {
+      let firstEl = null;
       missing.forEach((m) => {
         const el = document.getElementById('field-' + m.id);
-        if (el) el.classList.add('error');
+        if (el) {
+          el.classList.add('error');
+          if (!firstEl) firstEl = el;
+        }
       });
       const banner = document.getElementById('validation-banner');
       document.getElementById('missing-count').textContent = missing.length;
       document.getElementById('missing-list').innerHTML = missing.map((m) => `<li>${m.label}</li>`).join('');
       banner.hidden = false;
-      banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Scroll to the first actual missing field on the document itself
+      // (that's where it lives now) rather than just the summary banner.
+      (firstEl || banner).scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
     async function loadSession() {
@@ -668,13 +848,34 @@
       if (session.status === 'completed') { show('completed-view'); return; }
       if (session.status === 'declined') { show('declined-view'); return; }
 
+      if (session.isWitness) {
+        document.getElementById('witness-title').textContent = `Witness ${session.witnessedName}'s signature`;
+        document.getElementById('witness-hint').textContent = `You were invited to witness "${session.documentTitle}".`;
+        document.getElementById('witness-attest-label').textContent =
+          `I confirm that I witnessed ${session.witnessedName} sign "${session.documentTitle}" and that the information above is true.`;
+        document.getElementById('witness-signature-container').innerHTML =
+          renderSignatureField({ id: 'witness', field_type: 'signature', label: 'Your signature', required: true });
+        setupSignatureField({ id: 'witness', field_type: 'signature' });
+        show('witness-view');
+        callFn({ action: 'start', token }).catch(() => {});
+        return;
+      }
+
       document.getElementById('doc-title').textContent = session.documentTitle;
-      document.getElementById('pdf-frame').src = session.pdfUrl;
       document.getElementById('pdf-open-link').href = session.pdfUrl;
       document.getElementById('pdf-page-count').textContent = session.pageCount
-        ? `${session.pageCount} page${session.pageCount === 1 ? '' : 's'}. Scroll within the box above to see them all.`
+        ? `${session.pageCount} page${session.pageCount === 1 ? '' : 's'}`
         : '';
-      renderFields(session.fields || []);
+
+      const fields = session.fields || [];
+      const regular = fields.filter((f) => f.field_type !== 'signature' && f.field_type !== 'initials');
+      const requiredCount = fields.filter((f) => f.required).length;
+      document.getElementById('fields-count-hint').textContent = regular.length === 0
+        ? 'Nothing to fill in besides your signature.'
+        : `You have ${regular.length} field${regular.length === 1 ? '' : 's'} to fill in on the document below` +
+          (requiredCount > 0 ? ` (${requiredCount} required, marked with *).` : '.');
+
+      await renderPdfPages(session.pdfUrl, fields);
       show('sign-view');
 
       callFn({ action: 'start', token }).catch(() => {});
@@ -704,7 +905,7 @@
         fieldValues,
         signatures: signatureState,
         acknowledgements,
-        consentText: document.querySelector('.consent-row label').textContent.trim(),
+        consentText: document.querySelector('.consent-row label[for="consent-check"]').textContent.trim(),
       });
 
       if (!ok) {
@@ -722,6 +923,74 @@
 
     document.getElementById('decline-btn').addEventListener('click', async () => {
       const reason = prompt('Optional: let the sender know why you\'re declining.');
+      if (reason === null) return;
+      await callFn({ action: 'decline', token, reason });
+      show('declined-view');
+    });
+
+    document.getElementById('witness-invite-toggle-btn').addEventListener('click', () => {
+      const form = document.getElementById('witness-invite-form');
+      form.hidden = !form.hidden;
+    });
+
+    document.getElementById('witness-invite-send-btn').addEventListener('click', async () => {
+      const name = document.getElementById('witness-name-input').value.trim();
+      const email = document.getElementById('witness-email-input').value.trim();
+      const statusEl = document.getElementById('witness-invite-status');
+      if (!name || !email) { statusEl.textContent = 'Enter both a name and an email.'; return; }
+
+      const btn = document.getElementById('witness-invite-send-btn');
+      btn.disabled = true;
+      btn.textContent = 'Sending…';
+      const { ok } = await callFn({ action: 'invite_witness', token, witnessName: name, witnessEmail: email });
+      btn.disabled = false;
+      btn.textContent = 'Send invite';
+
+      if (ok) {
+        statusEl.textContent = `Invite sent to ${name}.`;
+        document.getElementById('witness-invite-form').hidden = true;
+        document.getElementById('witness-name-input').value = '';
+        document.getElementById('witness-email-input').value = '';
+      } else {
+        statusEl.textContent = 'Could not send the invite. Please try again.';
+      }
+    });
+
+    document.getElementById('witness-submit-btn').addEventListener('click', async () => {
+      const attested = document.getElementById('witness-attest-check').checked;
+      const sig = signatureState['witness'];
+      const banner = document.getElementById('witness-validation-banner');
+      banner.hidden = true;
+      if (!attested || !sig) {
+        banner.textContent = !attested ? 'Please confirm the attestation checkbox.' : 'Please provide your signature.';
+        banner.hidden = false;
+        return;
+      }
+
+      const btn = document.getElementById('witness-submit-btn');
+      btn.disabled = true;
+      btn.textContent = 'Submitting…';
+
+      const { ok } = await callFn({
+        action: 'submit',
+        token,
+        attested: true,
+        signatures: { witness: sig },
+        consentText: document.getElementById('witness-attest-label').textContent,
+      });
+
+      if (!ok) {
+        btn.disabled = false;
+        btn.textContent = 'Confirm & Submit';
+        banner.textContent = 'Something went wrong. Please try again.';
+        banner.hidden = false;
+        return;
+      }
+      show('completed-view');
+    });
+
+    document.getElementById('witness-decline-btn').addEventListener('click', async () => {
+      const reason = prompt('Optional: let the sender know why you\'re declining to witness.');
       if (reason === null) return;
       await callFn({ action: 'decline', token, reason });
       show('declined-view');
