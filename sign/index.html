@@ -131,7 +131,7 @@
     .theme-glyph { position: absolute; top: 0; left: 0; width: 20px; height: 20px; color: var(--gold); pointer-events: none; }
     .theme-glyph svg { width: 20px; height: 20px; }
   </style>
-</head>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer></script><style>.pdf-page{margin:16px auto;width:fit-content;max-width:100%;background:white;box-shadow:0 2px 12px #0002}.pdf-page canvas{display:block;max-width:100%;height:auto}.pdf-reader{overflow:auto;max-height:75vh;padding:12px;background:var(--bg);border-radius:8px}.pdf-reader-status{margin:12px 0;color:var(--muted)}</style></head>
 <body>
   <div class="theme-toggle-wrap">
     <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Appearance" aria-haspopup="true" aria-expanded="false"></button>
@@ -173,7 +173,7 @@
       </div>
 
       <div class="card">
-        <iframe id="pdf-frame" class="pdf-frame" title="Document preview"></iframe>
+        <h2 style="font-size:16px">Read the full document</h2><p id="pdf-status" class="pdf-reader-status" role="status">Loading all pages…</p><a id="pdf-full-link" target="_blank" rel="noopener noreferrer" hidden>Open full document in a new tab</a><div id="pdf-pages" class="pdf-reader" aria-label="Full document preview"></div>
       </div>
 
       <div class="card">
@@ -218,6 +218,47 @@
       return { ok: res.ok, status: res.status, data };
     }
 
+    let documentReady = false;
+    async function renderDocument(pdfUrl) {
+      documentReady = false;
+      const status = document.getElementById('pdf-status');
+      const pages = document.getElementById('pdf-pages');
+      const link = document.getElementById('pdf-full-link');
+      pages.replaceChildren();
+      link.href = pdfUrl;
+      link.hidden = false;
+      status.textContent = 'Loading all pages…';
+      try {
+        if (!window.pdfjsLib) throw new Error('PDF viewer unavailable');
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        const pdf = await pdfjsLib.getDocument({ url: pdfUrl }).promise;
+        for (let number = 1; number <= pdf.numPages; number++) {
+          const page = await pdf.getPage(number);
+          const base = page.getViewport({ scale: 1 });
+          const width = Math.max(280, Math.min(pages.clientWidth - 24 || 320, 900));
+          const viewport = page.getViewport({ scale: width / base.width });
+          const wrapper = document.createElement('div');
+          wrapper.className = 'pdf-page';
+          wrapper.setAttribute('aria-label', 'Page ' + number + ' of ' + pdf.numPages);
+          const canvas = document.createElement('canvas');
+          const ratio = Math.min(window.devicePixelRatio || 1, 2);
+          canvas.width = Math.ceil(viewport.width * ratio);
+          canvas.height = Math.ceil(viewport.height * ratio);
+          canvas.style.width = viewport.width + 'px';
+          canvas.style.height = viewport.height + 'px';
+          wrapper.append(canvas);
+          pages.append(wrapper);
+          await page.render({ canvasContext: canvas.getContext('2d'), viewport, transform: ratio === 1 ? null : [ratio, 0, 0, ratio, 0, 0] }).promise;
+          status.textContent = 'Loaded ' + number + ' of ' + pdf.numPages + ' pages';
+        }
+        documentReady = true;
+        status.textContent = 'All ' + pdf.numPages + ' pages loaded. Review the document before signing.';
+      } catch (error) {
+        documentReady = false;
+        status.textContent = 'The document could not be fully displayed. Open the full document in a new tab and reload this page to retry.';
+        console.error('PDF rendering failed', error);
+      }
+    }
     let session = null;
     const signatureState = {}; // fieldId -> { method, dataUrl?, typedText? }
 
@@ -533,14 +574,16 @@
       if (session.status === 'declined') { show('declined-view'); return; }
 
       document.getElementById('doc-title').textContent = session.documentTitle;
-      document.getElementById('pdf-frame').src = session.pdfUrl;
+      if (!session.pdfUrl) { show('invalid'); return; }
       renderFields(session.fields || []);
       show('sign-view');
+      await renderDocument(session.pdfUrl);
 
       callFn({ action: 'start', token }).catch(() => {});
     }
 
     document.getElementById('submit-btn').addEventListener('click', async () => {
+      if (!documentReady) { alert('The full document has not loaded. Please reload and review it before signing.'); return; }
       if (!document.getElementById('consent-check').checked) {
         alert('Please check the consent box before signing.');
         return;
