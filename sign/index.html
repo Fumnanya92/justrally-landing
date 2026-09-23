@@ -640,14 +640,13 @@
     // The preview follows the same 360x96 three-line layout stamped into
     // the completed PDF. The server replaces the preview time with its
     // authoritative signing instant on review and submission.
-    function suggestedSignerName(fieldId) {
+    function documentSignerName() {
       const nameField = (session?.fields || []).find((candidate) => {
         const label = candidate.label || '';
         return !/business|company|organisation|organization/i.test(label) &&
           (candidate.field_type === 'name' || /full name|representative name|signer name/i.test(label));
       });
-      const fieldName = nameField ? (document.getElementById('input-' + nameField.id)?.value || '').trim() : '';
-      return fieldName || signatureState[fieldId]?.typedText?.trim() || '';
+      return nameField ? (document.getElementById('input-' + nameField.id)?.value || '').trim() : '';
     }
 
     function drawRallyStamp(fieldId) {
@@ -710,7 +709,12 @@
         scheduleDraftSave();
       });
       const rallyName = document.getElementById('sig-rally-name-input-' + field.id);
-      rallyName.value = suggestedSignerName(field.id);
+      // A saved Rally Signed value is the signer's prior explicit choice;
+      // otherwise only the document's personal-name field may prefill it.
+      const savedRallyName = signatureState[field.id]?.method === 'rally_stamp'
+        ? signatureState[field.id].typedText.trim()
+        : '';
+      rallyName.value = savedRallyName || documentSignerName();
       rallyName.addEventListener('input', () => drawRallyStamp(field.id));
     }
 

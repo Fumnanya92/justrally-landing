@@ -105,6 +105,19 @@ test('collects fields in the floating form panel and leaves the PDF unobstructed
   await expect(page.locator('#sig-modal-overlay')).toBeVisible();
 });
 
+test('does not substitute the invitation name into Rally Signed', async ({ page }) => {
+  const invitationOnly = session();
+  invitationOnly.fields = [invitationOnly.fields[1]];
+  invitationOnly.recipientName = 'David';
+  await page.route(edgeUrl, (route) => route.fulfill({ json: invitationOnly }));
+
+  await page.goto('http://127.0.0.1:4179/sign/?token=' + 'e'.repeat(64));
+  await page.locator('#fill-form-fab').click();
+  await page.locator('#field-signature').click();
+  await page.locator('.sig-tab[data-mode="rally"]').click();
+  await expect(page.locator('#sig-rally-name-input-signature')).toHaveValue('');
+});
+
 test('shows a safe retry when final PDF generation failed', async ({ page }) => {
   let retried = false;
   await page.route(edgeUrl, (route) => {
