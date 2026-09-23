@@ -56,6 +56,7 @@ test('reads every page, resumes a draft, reviews, and submits Rally Signed', asy
   await page.locator('#field-signature').scrollIntoViewIfNeeded();
   await page.locator('#field-signature').click();
   await page.locator('.sig-tab[data-mode="rally"]').click();
+  await expect(page.locator('#sig-rally-name-input-signature')).toHaveValue('Ada Lovelace');
   await page.locator('#sig-modal-done').click();
   await page.locator('#consent-check').check();
   await page.locator('#submit-btn').click();

@@ -198,7 +198,10 @@
     .sig-tab.is-active { background: var(--navy); color: #fff; border-color: var(--navy); }
     #sig-canvas, [id^="sig-canvas-"] { width: 100%; height: 140px; border: 1px dashed var(--border); border-radius: 10px; background: #fff; touch-action: none; }
     .sig-typed input { width: 100%; padding: 14px; font-size: 24px; font-family: 'Brush Script MT', cursive, 'Inter'; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--text); }
-    .sig-rally { border: 1px solid var(--border); border-radius: 10px; background: #fff; padding: 4px; }
+    .sig-rally { border: 1px solid var(--border); border-radius: 10px; background: #fff; padding: 12px; }
+    .sig-rally label { display: block; font-size: 12px; font-weight: 700; color: var(--text); margin: 0 0 7px; }
+    .sig-rally input { width: 100%; padding: 11px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font: 15px/1.2 Inter, system-ui, sans-serif; margin-bottom: 10px; }
+    .sig-rally input:focus { outline: 3px solid rgba(0,6,102,.14); border-color: var(--accent); }
     .sig-rally canvas { display: block; width: 100%; height: auto; }
     .sig-rally-hint { font-size: 11px; color: var(--muted); margin-top: 8px; }
     .sig-clear { font-size: 12px; color: var(--muted); background: none; border: none; cursor: pointer; margin-top: 6px; text-decoration: underline; }
@@ -577,9 +580,11 @@
             <input type="text" id="sig-typed-input-${field.id}" placeholder="Type your ${field.field_type === 'initials' ? 'initials' : 'full name'}" />
           </div>
           <div class="sig-rally" id="sig-rally-${field.id}" hidden>
+            <label for="sig-rally-name-input-${field.id}">Full name shown on this signature</label>
+            <input type="text" id="sig-rally-name-input-${field.id}" autocomplete="name" placeholder="Enter your full name" />
             <canvas id="sig-rally-canvas-${field.id}"></canvas>
           </div>
-          <p class="sig-rally-hint" id="sig-rally-hint-${field.id}" hidden>Uses your name and Rally's signing time. This appearance is not independent identity verification.</p>
+          <p class="sig-rally-hint" id="sig-rally-hint-${field.id}" hidden>Uses this full name and Rally's signing time. This appearance is not independent identity verification.</p>
           <div class="error-text" id="sig-error-${field.id}">${field.field_type === 'initials' ? 'Initials are' : 'A signature is'} required.</div>
         </div>`;
     }
@@ -635,9 +640,20 @@
     // The preview follows the same 360x96 three-line layout stamped into
     // the completed PDF. The server replaces the preview time with its
     // authoritative signing instant on review and submission.
+    function suggestedSignerName(fieldId) {
+      const nameField = (session?.fields || []).find((candidate) => {
+        const label = candidate.label || '';
+        return !/business|company|organisation|organization/i.test(label) &&
+          (candidate.field_type === 'name' || /full name|representative name|signer name/i.test(label));
+      });
+      const fieldName = nameField ? (document.getElementById('input-' + nameField.id)?.value || '').trim() : '';
+      return fieldName || signatureState[fieldId]?.typedText?.trim() || '';
+    }
+
     function drawRallyStamp(fieldId) {
       const canvas = document.getElementById('sig-rally-canvas-' + fieldId);
-      const name = ((session && session.recipientName) || '').trim();
+      const nameInput = document.getElementById('sig-rally-name-input-' + fieldId);
+      const name = (nameInput?.value || '').trim();
       const dpr = window.devicePixelRatio || 1;
       const rect = canvas.getBoundingClientRect();
       const cssW = rect.width || canvas.clientWidth || canvas.parentElement.clientWidth || 300;
@@ -658,7 +674,7 @@
       ctx.font = `${Math.max(10, 12 * scale)}px Inter, system-ui, sans-serif`;
       ctx.fillText('✓ RALLY SIGNED', 4 * scale, 22 * scale);
       ctx.font = `600 ${Math.max(16, 22 * scale)}px Inter, system-ui, sans-serif`;
-      ctx.fillText(name || 'Your name', 4 * scale, 57 * scale, 348 * scale);
+      ctx.fillText(name || 'Your full name', 4 * scale, 57 * scale, 348 * scale);
       ctx.font = `${Math.max(10, 12 * scale)}px Inter, system-ui, sans-serif`;
       ctx.fillText(signedDate, 4 * scale, 84 * scale);
 
@@ -693,6 +709,9 @@
         else delete signatureState[field.id];
         scheduleDraftSave();
       });
+      const rallyName = document.getElementById('sig-rally-name-input-' + field.id);
+      rallyName.value = suggestedSignerName(field.id);
+      rallyName.addEventListener('input', () => drawRallyStamp(field.id));
     }
 
     // Signature/initials fields render as a small tappable chip at their
@@ -863,7 +882,7 @@
         } else if (value.method === 'rally_stamp') {
           const date = new Date((session && session.serverTime) || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' }).replace(',', '');
           preview.classList.add('rally-preview');
-          preview.innerHTML = `<span>✓ RALLY SIGNED</span><strong>${escapeHtml(value.typedText || session.recipientName || '')}</strong><span>${date}</span>`;
+          preview.innerHTML = `<span>✓ RALLY SIGNED</span><strong>${escapeHtml(value.typedText || '')}</strong><span>${date}</span>`;
         } else {
           preview.textContent = value.typedText || 'Signed';
         }
