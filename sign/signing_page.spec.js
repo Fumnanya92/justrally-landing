@@ -92,6 +92,10 @@ test('collects fields in the floating form panel and leaves the PDF unobstructed
   await expect(page.locator('#fill-form-panel')).toContainText('Document page 1');
   await expect(page.locator('#fill-form-panel')).toContainText('Document page 2');
   await expect(page.locator('#fill-form-panel #input-name')).toBeVisible();
+  await expect(page.locator('#field-name .error-text')).toBeHidden();
+  const nameInputWidth = await page.locator('#input-name').evaluate((el) => el.getBoundingClientRect().width);
+  const nameCardWidth = await page.locator('#field-name').evaluate((el) => el.getBoundingClientRect().width);
+  expect(nameInputWidth).toBeGreaterThan(nameCardWidth * .75);
   await page.locator('#fill-form-panel #input-name').fill('Ada Lovelace');
   await page.locator('#fill-form-preview').click();
   await expect(page.locator('#preview-name')).toContainText('Ada Lovelace');

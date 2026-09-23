@@ -163,8 +163,18 @@
     .panel-field { padding: 16px; margin-bottom: 10px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); box-shadow: 0 4px 12px rgba(0,6,102,.035); }
     .panel-field:last-child { margin-bottom: 0; }
     .panel-field-meta { color: var(--muted); font-size: 11px; font-weight: 700; margin-bottom: 9px; }
-    .panel-field label { font-size: 14px; }
-    .panel-field input[type=text], .panel-field input[type=email], .panel-field input[type=tel], .panel-field input[type=number], .panel-field input[type=date], .panel-field textarea, .panel-field select { background: var(--surface); }
+    .panel-field > label { display: block; font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+    .panel-field input[type=text], .panel-field input[type=email], .panel-field input[type=tel], .panel-field input[type=number], .panel-field input[type=date], .panel-field textarea, .panel-field select {
+      display: block; width: 100%; min-height: 46px; padding: 12px 13px; border: 1px solid var(--border);
+      border-radius: 9px; background: var(--surface); color: var(--text); font: 15px/1.2 'Inter', system-ui, sans-serif;
+    }
+    .panel-field textarea { min-height: 104px; resize: vertical; }
+    .panel-field input:focus, .panel-field textarea:focus, .panel-field select:focus { outline: 3px solid rgba(0,6,102,.14); border-color: var(--accent); }
+    .panel-field .hint { color: var(--muted); font-size: 12px; line-height: 1.4; margin-top: 7px; }
+    .panel-field .error-text { display: none; color: var(--danger-text); font-size: 12px; font-weight: 600; margin-top: 7px; }
+    .panel-field.error { border-color: var(--danger-text); }
+    .panel-field.error .error-text { display: block; }
+    .panel-field.error input, .panel-field.error textarea, .panel-field.error select { border-color: var(--danger-text); }
     .panel-sign-button { display: flex; width: 100%; justify-content: space-between; align-items: center; padding: 15px 14px; border: 1px solid var(--accent); border-radius: 10px; background: linear-gradient(135deg, rgba(0,6,102,.06), var(--surface)); color: var(--accent); font: 700 14px/1.2 Inter, system-ui, sans-serif; cursor: pointer; }
     .panel-sign-button.is-signed { color: var(--success-text); border-color: var(--success-text); background: var(--success-bg); }
     .fill-form-footer { padding: 16px 24px calc(20px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--border); background: var(--surface); }
