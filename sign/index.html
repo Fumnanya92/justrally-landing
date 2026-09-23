@@ -119,34 +119,42 @@
     .overlay-sig-chip.is-signed { border-style: solid; border-color: var(--success-text); background: var(--success-bg); }
     .overlay-sig-chip.is-signed .sig-chip-status { color: var(--success-text); font-weight: 700; }
     .overlay-sig-chip.error { border-color: var(--danger-text); }
-    .completed-field {
-      position: absolute; display: flex; align-items: center; overflow: hidden;
-      padding: 2px 5px; border: 1px solid rgba(20,120,75,.45); border-radius: 4px;
-      background: rgba(230,247,238,.96); color: #155e3f; font-size: 10px;
+    /* A field's placed rectangle is anchored by its BOTTOM edge sitting on
+       the document's blank line (that's what the sender was tapping when
+       they placed it) — the box itself usually extends upward from there.
+       Centering the answer text in that box (the old behavior) pulls it up
+       off the line by roughly half the box height, which is what made
+       every filled-in answer look like it was floating in the wrong place.
+       Bottom-aligning it, with no visible box around it, makes it read as
+       ordinary typed text sitting on the line — like an actual filled-in
+       form — instead of a UI chip pasted on top of the document. A soft
+       white halo (text-shadow, not a background fill) keeps it legible
+       over whatever the page underneath happens to look like (a logo, a
+       photo, a colored rule) without drawing a rectangle around it.
+       Applies to every document uniformly; nothing here is per-document. */
+    .completed-field, .preview-field {
+      position: absolute; display: none; align-items: flex-end; justify-content: flex-start;
+      overflow: hidden; padding: 0 2px 1px;
+      background: transparent; border: none; box-shadow: none;
+      color: #0b1550; font-size: 12px; line-height: 1.1;
       white-space: nowrap; text-overflow: ellipsis;
-      min-width: 46px; min-height: 20px; z-index: 2;
-      box-shadow: 0 1px 4px rgba(0,6,102,.12);
+      text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 5px #fff, 0 0 5px #fff;
+      min-width: 46px; min-height: 14px; z-index: 3;
       pointer-events: none;
     }
-    /* Placed field rectangles are often small and imprecisely spaced (manual
-       placement in the preparation UI), so the on-page answer readout needs
-       an opaque background, a hard edge and a size floor — otherwise nearby
-       fields visually bleed into each other and look like stray underlines. */
-    .preview-field {
-      position: absolute; display: none; align-items: center; overflow: hidden;
-      padding: 1px 5px; border-bottom: 1.5px solid var(--accent); border-radius: 2px;
-      background: #fff; color: #111a4d; font-size: 11px;
-      line-height: 1.15; white-space: nowrap; text-overflow: ellipsis;
-      min-width: 46px; min-height: 20px; z-index: 3;
-      box-shadow: 0 1px 4px rgba(0,6,102,.16);
-    }
+    .completed-field { display: flex; font-weight: 600; }
     .preview-field.is-visible { display: flex; }
     .preview-field.signature-preview,
-    .preview-field.multiline-preview { white-space: pre-line; }
-    .preview-field.signature-preview { border: 1px solid rgba(0,6,102,.48); border-radius: 3px; }
-    .preview-field.signature-preview img { display: block; width: 100%; height: 100%; object-fit: contain; }
-    .preview-field.signature-preview.rally-preview { align-items: flex-start; flex-direction: column; justify-content: center; font-size: 10px; }
-    .preview-field.signature-preview.rally-preview strong { font-size: 12px; }
+    .preview-field.multiline-preview,
+    .completed-field.signature-preview { white-space: pre-line; }
+    .preview-field.signature-preview img,
+    .completed-field.signature-preview img { display: block; width: 100%; height: 100%; object-fit: contain; }
+    .preview-field.signature-preview.rally-preview,
+    .completed-field.signature-preview.rally-preview {
+      align-items: flex-start; flex-direction: column; justify-content: flex-end; font-size: 10px; font-weight: 400;
+    }
+    .preview-field.signature-preview.rally-preview strong,
+    .completed-field.signature-preview.rally-preview strong { font-size: 12px; }
     .page-render-error { margin: 18px; }
 
     .fill-form-fab {
@@ -883,11 +891,23 @@
           const field = item.field;
           const el = document.createElement('div');
           el.className = 'completed-field';
-          el.textContent = item.signature ? 'Signed ✓' : item.acknowledged ? 'Acknowledged ✓' : (item.value && (item.value.value_text || JSON.stringify(item.value.value_json))) || 'Completed';
           el.style.left = (field.pos_x * 100) + '%';
           el.style.top = (field.pos_y * 100) + '%';
           el.style.width = (field.width * 100) + '%';
           el.style.height = (field.height * 100) + '%';
+          if (item.signature) {
+            // Render the actual signature (image, or the Rally mark
+            // rebuilt from its snapshot metadata) instead of a generic
+            // "Signed ✓" label — a later recipient reviewing what an
+            // earlier one already signed should see the real mark, not a
+            // status pill, or it doesn't read as a genuinely signed
+            // document.
+            applySignatureMark(el, item.signature);
+          } else if (item.acknowledged) {
+            el.textContent = 'Acknowledged';
+          } else {
+            el.textContent = (item.value && (item.value.value_text || JSON.stringify(item.value.value_json))) || 'Completed';
+          }
           overlay.appendChild(el);
         }
         } catch (error) {
@@ -944,6 +964,29 @@
       return element?.value?.trim() || '';
     }
 
+    // Shared by the live in-progress preview (signatureState, built from
+    // this recipient's own not-yet-submitted choice) and the read-only
+    // completed-field readout (an already-submitted signatures row from
+    // the server) — both need to show the actual mark, not a placeholder.
+    function applySignatureMark(el, sig) {
+      el.classList.add('signature-preview');
+      const imageUrl = sig.imageUrl || (sig.method === 'draw' && sig.dataUrl?.startsWith('data:image/') ? sig.dataUrl : null);
+      if (imageUrl) {
+        el.innerHTML = `<img alt="Signature" src="${imageUrl}" />`;
+        return;
+      }
+      if (sig.method === 'rally_stamp') {
+        const meta = sig.signature_metadata || {};
+        const fullName = meta.fullName || sig.typedText || sig.typed_text || '';
+        const dateLabel = sig.dateLabel || meta.date || new Date(meta.signedAt || (session && session.serverTime) || Date.now())
+          .toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' }).replace(',', '');
+        el.classList.add('rally-preview');
+        el.innerHTML = `<span>✓ RALLY SIGNED</span><strong>${escapeHtml(fullName)}</strong><span>${escapeHtml(dateLabel)}</span>`;
+        return;
+      }
+      el.textContent = sig.typedText || sig.typed_text || 'Signed';
+    }
+
     function updatePreviewField(field) {
       const preview = document.getElementById('preview-' + field.id);
       if (!preview) return;
@@ -954,16 +997,7 @@
       if (!value) return;
       preview.classList.add('is-visible');
       if (field.field_type === 'signature' || field.field_type === 'initials') {
-        preview.classList.add('signature-preview');
-        if (value.method === 'draw' && value.dataUrl?.startsWith('data:image/')) {
-          preview.innerHTML = `<img alt="Drawn signature" src="${value.dataUrl}" />`;
-        } else if (value.method === 'rally_stamp') {
-          const date = new Date((session && session.serverTime) || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' }).replace(',', '');
-          preview.classList.add('rally-preview');
-          preview.innerHTML = `<span>✓ RALLY SIGNED</span><strong>${escapeHtml(value.typedText || '')}</strong><span>${date}</span>`;
-        } else {
-          preview.textContent = value.typedText || 'Signed';
-        }
+        applySignatureMark(preview, value);
       } else {
         // Long answers still get the full readback in the fill-form panel;
         // the on-page chip truncates with an ellipsis (plus a title tooltip)
