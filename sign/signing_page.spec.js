@@ -45,11 +45,13 @@ test('reads every page, resumes a draft, reviews, and submits Rally Signed', asy
   await expect(page.locator('.pdf-page-wrap')).toHaveCount(2);
   await expect(page.locator('#pdf-page-count')).toHaveText('2 pages');
   await expect(page.locator('#pdf-open-link')).toHaveAttribute('href', /two-page\.pdf/);
+  await page.locator('#fill-form-fab').click();
   await page.locator('#input-name').fill('Ada Lovelace');
   await page.waitForTimeout(650);
   expect(actions).toContain('save_draft');
 
   await page.reload();
+  await page.locator('#fill-form-fab').click();
   await expect(page.locator('#input-name')).toHaveValue('Ada Lovelace');
   await page.locator('#field-signature').scrollIntoViewIfNeeded();
   await page.locator('#field-signature').click();
@@ -70,9 +72,29 @@ test('keeps all pages and fields usable on a mobile viewport', async ({ page }) 
   await page.route(edgeUrl, (route) => route.fulfill({ json: session() }));
   await page.goto('http://127.0.0.1:4179/sign/?token=' + 'b'.repeat(64));
   await expect(page.locator('.pdf-page-wrap')).toHaveCount(2);
-  await expect(page.locator('#field-signature')).toBeVisible();
+  await expect(page.locator('#fill-form-fab')).toBeVisible();
+  await expect(page.locator('.field-overlay .overlay-input-box')).toHaveCount(0);
   const width = await page.locator('.wrap').evaluate((el) => el.getBoundingClientRect().width);
   expect(width).toBeLessThanOrEqual(390);
+});
+
+test('collects fields in the floating form panel and leaves the PDF unobstructed', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.route(edgeUrl, (route) => route.fulfill({ json: session() }));
+
+  await page.goto('http://127.0.0.1:4179/sign/?token=' + 'd'.repeat(64));
+  await expect(page.locator('#fill-form-fab')).toBeVisible();
+  await expect(page.locator('#fill-form-panel #input-name')).toBeHidden();
+
+  await page.locator('#fill-form-fab').click();
+  await expect(page.locator('#fill-form-panel')).toBeVisible();
+  await expect(page.locator('#fill-form-panel #input-name')).toBeVisible();
+  await page.locator('#fill-form-panel #input-name').fill('Ada Lovelace');
+  await page.locator('#fill-form-preview').click();
+  await expect(page.locator('#preview-name')).toContainText('Ada Lovelace');
+  await page.locator('#fill-form-fab').click();
+  await page.locator('#fill-form-panel #field-signature').click();
+  await expect(page.locator('#sig-modal-overlay')).toBeVisible();
 });
 
 test('shows a safe retry when final PDF generation failed', async ({ page }) => {
