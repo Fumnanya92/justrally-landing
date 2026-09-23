@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <script>(function(){try{var t=localStorage.getItem('rally-theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();</script>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
   <title>Review &amp; Sign: Rally</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:ital,wght@1,500;1,600&display=swap" rel="stylesheet" />
@@ -122,16 +122,27 @@
     .completed-field {
       position: absolute; display: flex; align-items: center; overflow: hidden;
       padding: 2px 5px; border: 1px solid rgba(20,120,75,.45); border-radius: 4px;
-      background: rgba(230,247,238,.92); color: #155e3f; font-size: 10px;
+      background: rgba(230,247,238,.96); color: #155e3f; font-size: 10px;
+      white-space: nowrap; text-overflow: ellipsis;
+      min-width: 46px; min-height: 20px; z-index: 2;
+      box-shadow: 0 1px 4px rgba(0,6,102,.12);
       pointer-events: none;
     }
+    /* Placed field rectangles are often small and imprecisely spaced (manual
+       placement in the preparation UI), so the on-page answer readout needs
+       an opaque background, a hard edge and a size floor — otherwise nearby
+       fields visually bleed into each other and look like stray underlines. */
     .preview-field {
       position: absolute; display: none; align-items: center; overflow: hidden;
-      padding: 1px 4px; border-bottom: 1.5px solid var(--accent);
-      background: rgba(255,255,255,.78); color: #111a4d; font-size: 11px;
-      line-height: 1.15; white-space: pre-line;
+      padding: 1px 5px; border-bottom: 1.5px solid var(--accent); border-radius: 2px;
+      background: #fff; color: #111a4d; font-size: 11px;
+      line-height: 1.15; white-space: nowrap; text-overflow: ellipsis;
+      min-width: 46px; min-height: 20px; z-index: 3;
+      box-shadow: 0 1px 4px rgba(0,6,102,.16);
     }
     .preview-field.is-visible { display: flex; }
+    .preview-field.signature-preview,
+    .preview-field.multiline-preview { white-space: pre-line; }
     .preview-field.signature-preview { border: 1px solid rgba(0,6,102,.48); border-radius: 3px; }
     .preview-field.signature-preview img { display: block; width: 100%; height: 100%; object-fit: contain; }
     .preview-field.signature-preview.rally-preview { align-items: flex-start; flex-direction: column; justify-content: center; font-size: 10px; }
@@ -151,6 +162,12 @@
       position: fixed; inset: 0 0 0 auto; z-index: 350; width: min(448px, 100vw);
       display: flex; flex-direction: column; background: var(--surface); border-left: 1px solid var(--border);
       box-shadow: -18px 0 46px rgba(0,6,102,.24);
+      /* --vv-offset-top/--vv-height track window.visualViewport (see script
+         below): position:fixed elements stay pinned to the full layout
+         viewport on mobile browsers, which does NOT shrink for the on-screen
+         keyboard, so without this the bottom of the panel (and whatever
+         field is focused there) ends up hidden behind the keyboard. */
+      top: var(--vv-offset-top, 0px); height: var(--vv-height, 100vh);
     }
     .fill-form-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 26px 24px 20px; border-bottom: 1px solid var(--border); background: linear-gradient(135deg, rgba(0,6,102,.08), transparent 62%); }
     .fill-form-eyebrow { color: var(--accent); font-size: 11px; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; margin-bottom: 7px; }
@@ -182,7 +199,18 @@
     .fill-form-footer-note { color: var(--muted); font-size: 11px; line-height: 1.4; margin: 10px 2px 0; text-align: center; }
     @media (max-width: 560px) {
       .fill-form-fab { right: 16px; bottom: 16px; padding: 14px 16px; }
-      .fill-form-panel { inset: auto 0 0; width: 100%; height: min(86vh, 760px); border: 1px solid var(--border); border-radius: 24px 24px 0 0; box-shadow: 0 -18px 46px rgba(0,6,102,.24); }
+      .fill-form-panel {
+        inset: auto 0 0; width: 100%; border: 1px solid var(--border); border-radius: 24px 24px 0 0; box-shadow: 0 -18px 46px rgba(0,6,102,.24);
+        top: auto;
+        /* --kb-inset lifts the sheet off the bottom edge by however much
+           the on-screen keyboard is covering (see syncViewportInsets) —
+           without it, capping the height alone (max-height below) just
+           crops the panel where it already overlaps the keyboard instead
+           of moving it clear of the keyboard. */
+        bottom: var(--kb-inset, 0px);
+        height: min(86vh, 760px);
+        max-height: calc(var(--vv-height, 100vh) - var(--kb-inset, 0px) - 8px);
+      }
       .fill-form-panel::before { content: ''; width: 42px; height: 4px; border-radius: 999px; background: var(--border); margin: 10px auto -2px; }
       .fill-form-header { padding: 18px 20px 16px; }
       .fill-form-header h2 { font-size: 23px; }
@@ -209,6 +237,7 @@
     .modal-overlay {
       position: fixed; inset: 0; background: rgba(10,11,26,.55); z-index: 400;
       display: flex; align-items: flex-end; justify-content: center;
+      top: var(--vv-offset-top, 0px); height: var(--vv-height, 100vh);
     }
     .modal-card {
       width: 100%; max-width: 640px; background: var(--surface); border-radius: 20px 20px 0 0;
@@ -312,11 +341,6 @@
 
       <div id="pdf-pages"></div>
 
-      <div id="validation-banner" class="banner banner-danger" hidden>
-        <div>You still have <span id="missing-count"></span> required field(s):</div>
-        <ul class="missing-list" id="missing-list"></ul>
-      </div>
-
       <div class="card">
         <h1 style="font-size:16px; margin-bottom:4px;">Need a witness?</h1>
         <p class="sub" style="margin-bottom:12px;">Invite someone to witness your signature. They'll get their own link with a short attestation to sign, separate from your own fields.</p>
@@ -333,15 +357,6 @@
         </div>
         <button type="button" class="btn-outline" id="witness-invite-toggle-btn" style="margin-top:0;">Add a witness</button>
         <p class="sub" id="witness-invite-status" style="margin-top:10px;"></p>
-      </div>
-
-      <div class="card">
-        <div class="consent-row">
-          <input type="checkbox" id="consent-check" />
-          <label for="consent-check">By selecting "Sign &amp; Submit", I confirm that I am signing this document electronically and intend my electronic signature to be associated with this document.</label>
-        </div>
-        <button class="btn" id="submit-btn" type="button">Review and sign</button>
-        <button class="btn-outline" id="decline-btn" type="button">Decline to sign</button>
       </div>
     </div>
 
@@ -386,9 +401,23 @@
     </div>
     <div id="fill-form-fields" class="fill-form-fields"></div>
     <div class="fill-form-footer">
-      <button id="fill-form-review" class="btn" type="button">Review entries</button>
+      <!-- Lives inside the drawer, not the base page behind it: the base
+           page sits under the always-on backdrop while this panel is open,
+           so consent/submit/decline placed there were unreachable — the
+           recipient had no way to finish signing without first dismissing
+           the very panel they'd just used to fill everything in. -->
+      <div id="validation-banner" class="banner banner-danger" hidden>
+        <div>You still have <span id="missing-count"></span> required field(s):</div>
+        <ul class="missing-list" id="missing-list"></ul>
+      </div>
+      <div class="consent-row">
+        <input type="checkbox" id="consent-check" />
+        <label for="consent-check">By selecting "Sign &amp; Submit", I confirm that I am signing this document electronically and intend my electronic signature to be associated with this document.</label>
+      </div>
+      <button class="btn" id="submit-btn" type="button">Review and sign</button>
+      <button class="btn-outline" id="decline-btn" type="button">Decline to sign</button>
       <button id="fill-form-preview" class="btn-outline" type="button">Back to document</button>
-      <p class="fill-form-footer-note">You will review your entries and confirm consent before signing.</p>
+      <p class="fill-form-footer-note">You will review your entries before signing.</p>
     </div>
   </aside>
 
@@ -437,10 +466,54 @@
     let documentReady = false;
     let draftTimer = null;
 
+    // Mobile browsers keep position:fixed panels pinned to the full layout
+    // viewport, which does not shrink when the on-screen keyboard opens —
+    // so the fill-form drawer and signature modal need to track
+    // window.visualViewport themselves or their lower half (including
+    // whatever input the recipient just tapped) ends up hidden behind the
+    // keyboard. Falls back to the plain vh-based CSS if unsupported.
+    function syncViewportInsets() {
+      const vv = window.visualViewport;
+      if (!vv) return;
+      const root = document.documentElement.style;
+      root.setProperty('--vv-height', vv.height + 'px');
+      root.setProperty('--vv-offset-top', vv.offsetTop + 'px');
+      // Space the keyboard (or any other bottom chrome) is covering, so
+      // bottom-anchored sheets can lift clear of it instead of just being
+      // sized to fit and left overlapping the covered area.
+      const kbInset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      root.setProperty('--kb-inset', kbInset + 'px');
+    }
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', syncViewportInsets);
+      window.visualViewport.addEventListener('scroll', syncViewportInsets);
+      syncViewportInsets();
+    }
+    // Belt-and-suspenders for browsers without (or with unreliable)
+    // visualViewport: nudge whatever the recipient just focused back into
+    // view once the keyboard animation has had time to run.
+    document.addEventListener('focusin', (e) => {
+      const el = e.target;
+      if (!(el instanceof HTMLElement)) return;
+      if (!el.matches('input, textarea, select')) return;
+      if (!el.closest('.fill-form-panel, .modal-card')) return;
+      setTimeout(() => el.scrollIntoView({ block: 'center', behavior: 'smooth' }), 320);
+    });
+
     function show(id) {
       ['loading', 'invalid', 'declined-view', 'completed-view', 'sign-view', 'witness-view'].forEach((x) => {
         document.getElementById(x).hidden = x !== id;
       });
+      // The fill-form drawer/backdrop/FAB are siblings of these views, not
+      // inside them, so switching away from sign-view (e.g. after a
+      // successful submit or decline) wouldn't otherwise dismiss them —
+      // leaving the just-completed/declined message hidden behind the
+      // still-open drawer.
+      if (id !== 'sign-view') {
+        document.getElementById('fill-form-panel').hidden = true;
+        document.getElementById('fill-form-backdrop').hidden = true;
+        document.getElementById('fill-form-fab').hidden = true;
+      }
     }
 
     function escapeHtml(value) {
@@ -877,6 +950,7 @@
       const value = panelValue(field);
       preview.className = 'preview-field';
       preview.innerHTML = '';
+      preview.removeAttribute('title');
       if (!value) return;
       preview.classList.add('is-visible');
       if (field.field_type === 'signature' || field.field_type === 'initials') {
@@ -891,7 +965,13 @@
           preview.textContent = value.typedText || 'Signed';
         }
       } else {
+        // Long answers still get the full readback in the fill-form panel;
+        // the on-page chip truncates with an ellipsis (plus a title tooltip)
+        // instead of wrapping, which is what made short/tall placed field
+        // boxes look like they were overflowing into neighboring fields.
+        if (field.field_type === 'textarea') preview.classList.add('multiline-preview');
         preview.textContent = value;
+        preview.title = value;
       }
     }
 
@@ -1148,10 +1228,6 @@
     document.getElementById('fill-form-close').addEventListener('click', closeFillForm);
     document.getElementById('fill-form-backdrop').addEventListener('click', closeFillForm);
     document.getElementById('fill-form-preview').addEventListener('click', closeFillForm);
-    document.getElementById('fill-form-review').addEventListener('click', () => {
-      closeFillForm();
-      prepareReview();
-    });
     document.getElementById('submit-btn').addEventListener('click', prepareReview);
     document.getElementById('review-modal-close').addEventListener('click', () => {
       document.getElementById('review-modal-overlay').hidden = true;
