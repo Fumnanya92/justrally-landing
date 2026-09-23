@@ -124,6 +124,13 @@
     .overlay-sig-chip.is-signed { border-style: solid; border-color: var(--success-text); background: var(--success-bg); }
     .overlay-sig-chip.is-signed .sig-chip-status { color: var(--success-text); font-weight: 700; }
     .overlay-sig-chip.error { border-color: var(--danger-text); }
+    .completed-field {
+      position: absolute; display: flex; align-items: center; overflow: hidden;
+      padding: 2px 5px; border: 1px solid rgba(20,120,75,.45); border-radius: 4px;
+      background: rgba(230,247,238,.92); color: #155e3f; font-size: 10px;
+      pointer-events: none;
+    }
+    .page-render-error { margin: 18px; }
 
     .choice-row { display: flex; align-items: center; gap: 8px; padding: 8px 0; font-size: 14px; }
     .choice-row input { width: 18px; height: 18px; flex-shrink: 0; }
@@ -134,7 +141,7 @@
     #sig-canvas, [id^="sig-canvas-"] { width: 100%; height: 140px; border: 1px dashed var(--border); border-radius: 10px; background: #fff; touch-action: none; }
     .sig-typed input { width: 100%; padding: 14px; font-size: 24px; font-family: 'Brush Script MT', cursive, 'Inter'; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--text); }
     .sig-rally { border: 1px solid var(--border); border-radius: 10px; background: #fff; padding: 4px; }
-    .sig-rally canvas { display: block; width: 100%; height: 148px; }
+    .sig-rally canvas { display: block; width: 100%; height: auto; }
     .sig-rally-hint { font-size: 11px; color: var(--muted); margin-top: 8px; }
     .sig-clear { font-size: 12px; color: var(--muted); background: none; border: none; cursor: pointer; margin-top: 6px; text-decoration: underline; }
 
@@ -224,7 +231,8 @@
     <div id="completed-view" class="card" hidden>
       <div class="pill pill-success">Completed</div>
       <h1>You're done</h1>
-      <p class="sub" style="margin-top:8px;">Your document has been successfully submitted. A copy will be sent to your email if one was provided.</p>
+      <p class="sub" id="completion-message" style="margin-top:8px;">Your entries were submitted successfully.</p>
+      <button class="btn-outline" id="retry-finalization-btn" type="button" hidden>Retry final document</button>
       <p class="sub" style="margin-top:16px;">You can safely close this page.</p>
     </div>
 
@@ -315,6 +323,17 @@
     </div>
   </div>
 
+  <div id="review-modal-overlay" class="modal-overlay" hidden>
+    <div class="modal-card">
+      <div class="modal-header">
+        <span>Review before submitting</span>
+        <button type="button" id="review-modal-close" class="modal-close" aria-label="Close">&times;</button>
+      </div>
+      <div id="review-modal-body"></div>
+      <button class="btn" id="review-confirm-btn" type="button">Confirm &amp; Submit</button>
+    </div>
+  </div>
+
   <script>
     const FUNCTIONS_URL = 'https://hbghbextytgrpnzbsppz.supabase.co/functions/v1/documents-sign';
     const ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhiZ2hiZXh0eXRncnBuemJzcHB6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0MDIxMDksImV4cCI6MjA3Mzk3ODEwOX0.LXlv55Vm3liQagC-zWAeQ3pl9G_x1lL1zVmq-_uUm24';
@@ -335,6 +354,8 @@
 
     let session = null;
     const signatureState = {}; // fieldId -> { method, dataUrl?, typedText? }
+    let documentReady = false;
+    let draftTimer = null;
 
     function show(id) {
       ['loading', 'invalid', 'declined-view', 'completed-view', 'sign-view', 'witness-view'].forEach((x) => {
@@ -342,8 +363,12 @@
       });
     }
 
+    function escapeHtml(value) {
+      return String(value ?? '').replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
+    }
+
     function fieldLabelHtml(field) {
-      return field.label + (field.required ? ' <span class="req">*</span>' : '');
+      return escapeHtml(field.label) + (field.required ? ' <span class="req">*</span>' : '');
     }
 
     function elementFromHtml(html) {
@@ -465,7 +490,7 @@
           <div class="sig-tabs">
             <div class="sig-tab is-active" data-mode="draw" data-field="${field.id}">Draw</div>
             <div class="sig-tab" data-mode="type" data-field="${field.id}">Type</div>
-            <div class="sig-tab" data-mode="rally" data-field="${field.id}">Rally Signature</div>
+            <div class="sig-tab" data-mode="rally" data-field="${field.id}">Rally Signed</div>
           </div>
           <div class="sig-draw" id="sig-draw-${field.id}">
             <canvas id="sig-canvas-${field.id}"></canvas>
@@ -477,7 +502,7 @@
           <div class="sig-rally" id="sig-rally-${field.id}" hidden>
             <canvas id="sig-rally-canvas-${field.id}"></canvas>
           </div>
-          <p class="sig-rally-hint" id="sig-rally-hint-${field.id}" hidden>Generated from your name on file. Tap "Draw" or "Type" instead if you'd rather sign by hand.</p>
+          <p class="sig-rally-hint" id="sig-rally-hint-${field.id}" hidden>Uses your name and Rally's signing time. This appearance is not independent identity verification.</p>
           <div class="error-text" id="sig-error-${field.id}">${field.field_type === 'initials' ? 'Initials are' : 'A signature is'} required.</div>
         </div>`;
     }
@@ -513,7 +538,7 @@
       }
       function start(e) { drawing = true; hasDrawn = true; const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); e.preventDefault(); }
       function move(e) { if (!drawing) return; const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); e.preventDefault(); }
-      function end() { drawing = false; if (hasDrawn) signatureState[fieldId] = { method: 'draw', dataUrl: canvas.toDataURL('image/png') }; }
+      function end() { drawing = false; if (hasDrawn) { signatureState[fieldId] = { method: 'draw', dataUrl: canvas.toDataURL('image/png') }; scheduleDraftSave(); } }
 
       canvas.addEventListener('mousedown', start);
       canvas.addEventListener('mousemove', move);
@@ -526,99 +551,43 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         hasDrawn = false;
         delete signatureState[fieldId];
+        scheduleDraftSave();
       });
     }
 
-    // Renders the one-tap "Rally Signature" mark: a checkmark eyebrow plus
-    // the recipient's name, given a debossed/engraved look (rather than
-    // flat printed text) by stacking a dark shadow offset up-left and a
-    // light highlight offset down-right behind a semi-transparent fill, so
-    // the edges read as pressed into the page instead of sitting on it.
-    // Produces a real PNG (via toDataURL) stored exactly like a hand-drawn
-    // signature — signatures.method='rally_stamp' just tags it distinctly
-    // for the audit trail.
-    function drawRallyStamp(fieldId, fieldType) {
+    // The preview follows the same 360x96 three-line layout stamped into
+    // the completed PDF. The server replaces the preview time with its
+    // authoritative signing instant on review and submission.
+    function drawRallyStamp(fieldId) {
       const canvas = document.getElementById('sig-rally-canvas-' + fieldId);
-      const fullName = ((session && session.recipientName) || '').trim();
-      const name = fieldType === 'initials' && fullName
-        ? fullName.split(' ').filter(Boolean).map((w) => w[0].toUpperCase()).join('')
-        : fullName;
+      const name = ((session && session.recipientName) || '').trim();
       const dpr = window.devicePixelRatio || 1;
       const rect = canvas.getBoundingClientRect();
       const cssW = rect.width || canvas.clientWidth || canvas.parentElement.clientWidth || 300;
-      const cssH = 148;
+      const cssH = Math.max(96, Math.round(cssW * 96 / 360));
       canvas.width = cssW * dpr;
       canvas.height = cssH * dpr;
       const ctx = canvas.getContext('2d');
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, cssW, cssH);
-
-      const cx = cssW / 2;
-      const cy = cssH / 2;
-
-      function embossed(text, x, y, font, color) {
-        ctx.font = font;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = 'rgba(255,255,255,0.8)';
-        ctx.fillText(text, x + 1.5, y + 1.8);
-        ctx.fillStyle = 'rgba(0,6,102,0.4)';
-        ctx.fillText(text, x - 1.5, y - 1.5);
-        ctx.fillStyle = color;
-        ctx.fillText(text, x, y);
-      }
-
-      embossed('✓  RALLY SIGNED', cx, cy - 30, '700 13px Inter, system-ui, sans-serif', 'rgba(185,143,0,0.92)');
-
-      const nameText = name || 'Your name';
-      const maxNameWidth = cssW - 40;
-      const minSingleLineSize = 16;
-      let nameFontSize = 28;
-      ctx.font = `italic 600 ${nameFontSize}px Fraunces, Georgia, serif`;
-      while (nameFontSize > minSingleLineSize && ctx.measureText(nameText).width > maxNameWidth) {
-        nameFontSize -= 1;
-        ctx.font = `italic 600 ${nameFontSize}px Fraunces, Georgia, serif`;
-      }
-
-      if (ctx.measureText(nameText).width <= maxNameWidth) {
-        embossed(nameText, cx, cy + 20, `italic 600 ${nameFontSize}px Fraunces, Georgia, serif`, 'rgba(0,6,102,0.88)');
-      } else {
-        const words = nameText.split(' ');
-        let line1 = nameText;
-        let line2 = '';
-        if (words.length > 1) {
-          let bestSplit = 1;
-          let bestDiff = Infinity;
-          for (let i = 1; i < words.length; i++) {
-            const a = words.slice(0, i).join(' ');
-            const b = words.slice(i).join(' ');
-            const diff = Math.abs(a.length - b.length);
-            if (diff < bestDiff) { bestDiff = diff; bestSplit = i; }
-          }
-          line1 = words.slice(0, bestSplit).join(' ');
-          line2 = words.slice(bestSplit).join(' ');
-        }
-        let wrapFontSize = 20;
-        ctx.font = `italic 600 ${wrapFontSize}px Fraunces, Georgia, serif`;
-        while (wrapFontSize > 13 &&
-            (ctx.measureText(line1).width > maxNameWidth || ctx.measureText(line2).width > maxNameWidth)) {
-          wrapFontSize -= 1;
-          ctx.font = `italic 600 ${wrapFontSize}px Fraunces, Georgia, serif`;
-        }
-        const font = `italic 600 ${wrapFontSize}px Fraunces, Georgia, serif`;
-        embossed(line1, cx, cy + 10, font, 'rgba(0,6,102,0.88)');
-        if (line2) embossed(line2, cx, cy + 10 + wrapFontSize + 4, font, 'rgba(0,6,102,0.88)');
-      }
-
-      ctx.strokeStyle = 'rgba(0,6,102,0.16)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(cx - 70, cy + 44);
-      ctx.lineTo(cx + 70, cy + 44);
-      ctx.stroke();
+      const signedAt = new Date((session && session.serverTime) || Date.now());
+      const signedDate = signedAt.toLocaleDateString('en-GB', {
+        day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC'
+      }).replace(',', '');
+      const scale = cssW / 360;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillStyle = '#000666';
+      ctx.font = `${Math.max(10, 12 * scale)}px Inter, system-ui, sans-serif`;
+      ctx.fillText('✓ RALLY SIGNED', 4 * scale, 22 * scale);
+      ctx.font = `600 ${Math.max(16, 22 * scale)}px Inter, system-ui, sans-serif`;
+      ctx.fillText(name || 'Your name', 4 * scale, 57 * scale, 348 * scale);
+      ctx.font = `${Math.max(10, 12 * scale)}px Inter, system-ui, sans-serif`;
+      ctx.fillText(signedDate, 4 * scale, 84 * scale);
 
       if (name) {
-        signatureState[fieldId] = { method: 'rally_stamp', dataUrl: canvas.toDataURL('image/png') };
+        signatureState[fieldId] = { method: 'rally_stamp', typedText: name };
+        scheduleDraftSave();
       } else {
         delete signatureState[fieldId];
       }
@@ -637,7 +606,7 @@
           document.getElementById('sig-rally-' + field.id).hidden = mode !== 'rally';
           document.getElementById('sig-rally-hint-' + field.id).hidden = mode !== 'rally';
           if (mode === 'rally') {
-            requestAnimationFrame(() => drawRallyStamp(field.id, field.field_type));
+            requestAnimationFrame(() => drawRallyStamp(field.id));
           }
         });
       });
@@ -645,6 +614,7 @@
         const v = e.target.value.trim();
         if (v) signatureState[field.id] = { method: 'typed', typedText: v };
         else delete signatureState[field.id];
+        scheduleDraftSave();
       });
     }
 
@@ -685,7 +655,7 @@
     // static preview. Positions are plain CSS percentages of each page's
     // own box, so they stay aligned at any zoom level for free (native
     // mobile-browser pinch-zoom, no custom transform math needed).
-    async function renderPdfPages(pdfUrl, fields) {
+    async function renderPdfPages(pdfUrl, fields, completedFields = []) {
       const container = document.getElementById('pdf-pages');
       container.innerHTML = '<p class="sub" style="text-align:center;padding:24px 0;">Loading document…</p>';
 
@@ -694,23 +664,28 @@
         pdf = await pdfjsLib.getDocument(pdfUrl).promise;
       } catch (e) {
         container.innerHTML = `<p class="banner banner-danger">Could not load the document preview. <a href="${pdfUrl}" target="_blank" rel="noopener">Open it directly instead</a>.</p>`;
-        return;
+        return false;
       }
 
       container.innerHTML = '';
+      let allRendered = true;
+      document.getElementById('pdf-page-count').textContent =
+        `${pdf.numPages} page${pdf.numPages === 1 ? '' : 's'}`;
       const dpr = window.devicePixelRatio || 1;
 
       for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-        const page = await pdf.getPage(pageNum);
         const wrap = document.createElement('div');
         wrap.className = 'pdf-page-wrap';
+        wrap.dataset.page = String(pageNum);
+        container.appendChild(wrap);
+        try {
+        const page = await pdf.getPage(pageNum);
         const canvas = document.createElement('canvas');
         canvas.className = 'pdf-page-canvas';
         const overlay = document.createElement('div');
         overlay.className = 'field-overlay';
         wrap.appendChild(canvas);
         wrap.appendChild(overlay);
-        container.appendChild(wrap);
 
         const containerWidth = wrap.clientWidth || container.clientWidth || 320;
         const unscaledViewport = page.getViewport({ scale: 1 });
@@ -743,7 +718,27 @@
           el.style.height = (field.height * 100) + '%';
           overlay.appendChild(el);
         }
+        for (const item of completedFields.filter((item) => item.field && item.field.page_number === pageNum)) {
+          const field = item.field;
+          const el = document.createElement('div');
+          el.className = 'completed-field';
+          el.textContent = item.signature ? 'Signed ✓' : item.acknowledged ? 'Acknowledged ✓' : (item.value && (item.value.value_text || JSON.stringify(item.value.value_json))) || 'Completed';
+          el.style.left = (field.pos_x * 100) + '%';
+          el.style.top = (field.pos_y * 100) + '%';
+          el.style.width = (field.width * 100) + '%';
+          el.style.height = (field.height * 100) + '%';
+          overlay.appendChild(el);
+        }
+        } catch (error) {
+          allRendered = false;
+          wrap.innerHTML = `<div class="banner banner-danger page-render-error">Page ${pageNum} could not be rendered. <button type="button" class="btn-outline" data-retry-page="${pageNum}">Retry page</button></div>`;
+          wrap.querySelector('[data-retry-page]').addEventListener('click', async () => {
+            documentReady = false;
+            documentReady = await renderPdfPages(pdfUrl, fields, completedFields);
+          });
+        }
       }
+      return allRendered;
     }
 
     function collectFieldValues(fields) {
@@ -839,13 +834,94 @@
       (firstEl || banner).scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
+    function currentDraft() {
+      const fields = (session && session.fields) || [];
+      const { values, acknowledgements } = collectFieldValues(fields);
+      return {
+        fieldValues: values,
+        signatures: { ...signatureState },
+        acknowledgements,
+        consent: document.getElementById('consent-check').checked,
+        consentText: (session && session.consentText) || '',
+      };
+    }
+
+    function scheduleDraftSave() {
+      if (!session || session.isWitness || !documentReady) return;
+      clearTimeout(draftTimer);
+      draftTimer = setTimeout(() => {
+        callFn({ action: 'save_draft', token, ...currentDraft() }).catch(() => {});
+      }, 450);
+    }
+
+    function applyDraft(draft) {
+      if (!draft) return;
+      Object.assign(signatureState, draft.signatures || {});
+      const values = draft.fieldValues || {};
+      for (const field of session.fields || []) {
+        const value = values[field.id];
+        if (field.field_type === 'signature' || field.field_type === 'initials') {
+          updateSigChipStatus(field.id);
+        } else if (field.field_type === 'multi_checkbox') {
+          for (const el of document.querySelectorAll(`input[name="input-${field.id}"]`)) el.checked = Array.isArray(value) && value.includes(el.value);
+        } else if (field.field_type === 'radio') {
+          const el = document.querySelector(`input[name="input-${field.id}"][value="${CSS.escape(value || '')}"]`); if (el) el.checked = true;
+        } else {
+          const el = document.getElementById('input-' + field.id);
+          if (el) field.field_type === 'checkbox' || field.field_type === 'acknowledgement'
+            ? el.checked = value === true || value === 'true' || (draft.acknowledgements || []).includes(field.id)
+            : el.value = value || '';
+        }
+      }
+      document.getElementById('consent-check').checked = draft.consent === true;
+    }
+
+    function showCompletion(processingStatus, processingError) {
+      const message = document.getElementById('completion-message');
+      const retry = document.getElementById('retry-finalization-btn');
+      if (processingStatus === 'failed') {
+        message.textContent = 'Your signature is saved, but the final PDF could not be generated yet. You can retry safely.';
+        retry.hidden = false;
+        retry.dataset.error = processingError || '';
+      } else if (processingStatus === 'processing' || processingStatus === 'pending') {
+        message.textContent = 'Your signature is saved. The final PDF will be available after all recipients finish.';
+        retry.hidden = true;
+      } else {
+        message.textContent = 'Your entries were submitted successfully.';
+        retry.hidden = true;
+      }
+      show('completed-view');
+    }
+
+    let pendingSubmission = null;
+
+    async function prepareReview() {
+      if (!documentReady) { alert('Wait until every document page has loaded before submitting.'); return; }
+      if (!document.getElementById('consent-check').checked) { alert('Please check the consent box before signing.'); return; }
+      clearErrors();
+      const fields = session.fields || [];
+      const { values, acknowledgements } = collectFieldValues(fields);
+      const missing = validate(fields, values, acknowledgements);
+      if (missing.length) { showValidationErrors(missing); return; }
+      const fieldValues = { ...values, ...await collectFileUploads(fields) };
+      const payload = { action: 'review', token, fieldValues, signatures: { ...signatureState }, acknowledgements, consent: true, consentText: session.consentText };
+      const result = await callFn(payload);
+      if (!result.ok) { alert('Your entries could not be reviewed. Check the fields and try again.'); return; }
+      pendingSubmission = { ...payload, action: 'submit' };
+      document.getElementById('review-modal-body').innerHTML = fields.map((field) => {
+        const value = signatureState[field.id] ? `Signature (${signatureState[field.id].method})` : fieldValues[field.id] || (acknowledgements.includes(field.id) ? 'Acknowledged' : '—');
+        return `<div class="field"><strong>${escapeHtml(field.label)}</strong><div class="sub">${escapeHtml(Array.isArray(value) ? value.join(', ') : value)}</div></div>`;
+      }).join('') + `<p class="sub">Signing time is recorded by Rally when you confirm.</p>`;
+      document.getElementById('review-modal-overlay').hidden = false;
+    }
+
     async function loadSession() {
       if (!token) { show('invalid'); return; }
       const { ok, data } = await callFn({ action: 'session', token });
       if (!ok) { show('invalid'); return; }
       session = data;
 
-      if (session.status === 'completed') { show('completed-view'); return; }
+      if (session.status === 'completed') { showCompletion(session.processingStatus, session.processingError); return; }
       if (session.status === 'declined') { show('declined-view'); return; }
 
       if (session.isWitness) {
@@ -863,9 +939,7 @@
 
       document.getElementById('doc-title').textContent = session.documentTitle;
       document.getElementById('pdf-open-link').href = session.pdfUrl;
-      document.getElementById('pdf-page-count').textContent = session.pageCount
-        ? `${session.pageCount} page${session.pageCount === 1 ? '' : 's'}`
-        : '';
+      document.querySelector('label[for="consent-check"]').textContent = session.consentText;
 
       const fields = session.fields || [];
       const regular = fields.filter((f) => f.field_type !== 'signature' && f.field_type !== 'initials');
@@ -875,50 +949,44 @@
         : `You have ${regular.length} field${regular.length === 1 ? '' : 's'} to fill in on the document below` +
           (requiredCount > 0 ? ` (${requiredCount} required, marked with *).` : '.');
 
-      await renderPdfPages(session.pdfUrl, fields);
       show('sign-view');
+      documentReady = await renderPdfPages(session.pdfUrl, fields, session.completedFields || []);
+      applyDraft(session.draft || {});
+      document.getElementById('pdf-pages').addEventListener('input', scheduleDraftSave);
+      document.getElementById('pdf-pages').addEventListener('change', scheduleDraftSave);
+      document.getElementById('consent-check').addEventListener('change', scheduleDraftSave);
 
       callFn({ action: 'start', token }).catch(() => {});
     }
 
-    document.getElementById('submit-btn').addEventListener('click', async () => {
-      if (!document.getElementById('consent-check').checked) {
-        alert('Please check the consent box before signing.');
-        return;
-      }
-      clearErrors();
-      const fields = session.fields || [];
-      const { values, acknowledgements } = collectFieldValues(fields);
-      const missing = validate(fields, values, acknowledgements);
-      if (missing.length > 0) { showValidationErrors(missing); return; }
-
-      const btn = document.getElementById('submit-btn');
+    document.getElementById('submit-btn').addEventListener('click', prepareReview);
+    document.getElementById('review-modal-close').addEventListener('click', () => {
+      document.getElementById('review-modal-overlay').hidden = true;
+      pendingSubmission = null;
+    });
+    document.getElementById('review-confirm-btn').addEventListener('click', async () => {
+      if (!pendingSubmission) return;
+      const btn = document.getElementById('review-confirm-btn');
       btn.disabled = true;
       btn.textContent = 'Submitting…';
+      const { ok, data } = await callFn(pendingSubmission);
+      btn.disabled = false;
+      btn.textContent = 'Confirm & Submit';
+      if (!ok) { alert('Something went wrong submitting your document. Please try again.'); return; }
+      document.getElementById('review-modal-overlay').hidden = true;
+      pendingSubmission = null;
+      showCompletion(data.processingStatus, data.processingError);
+    });
 
-      const fileValues = await collectFileUploads(fields);
-      const fieldValues = { ...values, ...fileValues };
-
-      const { ok, data } = await callFn({
-        action: 'submit',
-        token,
-        fieldValues,
-        signatures: signatureState,
-        acknowledgements,
-        consentText: document.querySelector('.consent-row label[for="consent-check"]').textContent.trim(),
-      });
-
-      if (!ok) {
-        btn.disabled = false;
-        btn.textContent = 'Sign & Submit';
-        if (data && data.error === 'missing_required_fields') {
-          showValidationErrors((data.fields || []).map((label) => ({ id: '', label })));
-        } else {
-          alert('Something went wrong submitting your document. Please try again.');
-        }
-        return;
-      }
-      show('completed-view');
+    document.getElementById('retry-finalization-btn').addEventListener('click', async () => {
+      const button = document.getElementById('retry-finalization-btn');
+      button.disabled = true;
+      button.textContent = 'Retrying…';
+      const { ok, data } = await callFn({ action: 'retry_finalization', token });
+      button.disabled = false;
+      button.textContent = 'Retry final document';
+      if (!ok) { alert('The retry could not be started. Please try again.'); return; }
+      showCompletion(data.processingStatus, data.processingError);
     });
 
     document.getElementById('decline-btn').addEventListener('click', async () => {
@@ -976,6 +1044,7 @@
         token,
         attested: true,
         signatures: { witness: sig },
+        consent: true,
         consentText: document.getElementById('witness-attest-label').textContent,
       });
 
@@ -986,7 +1055,7 @@
         banner.hidden = false;
         return;
       }
-      show('completed-view');
+      showCompletion('pending');
     });
 
     document.getElementById('witness-decline-btn').addEventListener('click', async () => {

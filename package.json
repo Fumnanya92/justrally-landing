@@ -1,0 +1,10 @@
+{
+  "name": "justrally-landing",
+  "private": true,
+  "scripts": {
+    "test:signing": "playwright test --config=playwright.config.js"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1"
+  }
+}
