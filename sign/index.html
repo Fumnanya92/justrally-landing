@@ -144,14 +144,17 @@
       color: #0b1550; font-size: 12px; line-height: 1.1;
       white-space: nowrap; text-overflow: ellipsis;
       text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 5px #fff, 0 0 5px #fff;
-      /* min-width keeps a very narrow field's answer legible, but
-         min-height must stay small: a tightly-spaced signature block
-         (business name/rep name/position/signature/date each only a line
-         apart) places real field boxes shorter than 14px, and fitTextToBox
-         already sizes the font to whatever height the box actually has —
-         flooring every box at 14px regardless just re-overlapped rows that
-         fitTextToBox had correctly shrunk to fit. */
-      min-width: 46px; min-height: 8px; z-index: 3;
+      /* min-width keeps a very narrow field's answer legible, but there is
+         deliberately no min-height: a tightly-spaced signature block
+         (business name/rep name/position/signature/date each only a few
+         pixels apart at render scale) places real field boxes shorter
+         than any fixed floor could accommodate without the box itself
+         extending past where the NEXT field's box already starts. Legibility
+         for a short box is fitTextToBox's/fitRallyStampToBox's job (they
+         already floor the font size, not the box) — inflating the box's own
+         footprint here just re-overlaps whatever they had correctly sized
+         to fit. */
+      min-width: 46px; z-index: 3;
       pointer-events: none;
     }
     .completed-field { display: flex; font-weight: 600; }
