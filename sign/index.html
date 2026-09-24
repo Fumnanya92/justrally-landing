@@ -895,6 +895,10 @@
           el.style.top = (field.pos_y * 100) + '%';
           el.style.width = (field.width * 100) + '%';
           el.style.height = (field.height * 100) + '%';
+          // Append before filling it in — the shrink-to-fit helpers below
+          // measure the box's actual rendered pixel size, which only
+          // exists once the element is in the DOM.
+          overlay.appendChild(el);
           if (item.signature) {
             // Render the actual signature (image, or the Rally mark
             // rebuilt from its snapshot metadata) instead of a generic
@@ -906,9 +910,8 @@
           } else if (item.acknowledged) {
             el.textContent = 'Acknowledged';
           } else {
-            el.textContent = (item.value && (item.value.value_text || JSON.stringify(item.value.value_json))) || 'Completed';
+            fitTextToBox(el, (item.value && (item.value.value_text || JSON.stringify(item.value.value_json))) || 'Completed');
           }
-          overlay.appendChild(el);
         }
         } catch (error) {
           allRendered = false;
@@ -982,9 +985,51 @@
           .toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' }).replace(',', '');
         el.classList.add('rally-preview');
         el.innerHTML = `<span>✓ RALLY SIGNED</span><strong>${escapeHtml(fullName)}</strong><span>${escapeHtml(dateLabel)}</span>`;
+        fitRallyStampToBox(el);
         return;
       }
       el.textContent = sig.typedText || sig.typed_text || 'Signed';
+    }
+
+    // The rally stamp is a fixed three-line layout (label, name, date); a
+    // signature box the sender drew short only had room for the bottom
+    // line, so `overflow: hidden` was silently clipping the checkmark
+    // label and the signer's own name off the top, leaving just the date
+    // visible. Scale every line's font size to the box's actual rendered
+    // height first, then shrink the name further if it's still wider than
+    // the box, so the full stamp always fits instead of being cut off.
+    function fitRallyStampToBox(el) {
+      const boxHeight = el.clientHeight;
+      const boxWidth = el.clientWidth;
+      if (!boxHeight || !boxWidth) return;
+      const naturalHeight = 46; // ~ two 10px lines + one 12px line at 1.1 line-height, plus gaps
+      const scale = Math.max(0.5, Math.min(1, boxHeight / naturalHeight));
+      el.style.fontSize = (10 * scale).toFixed(1) + 'px';
+      const strong = el.querySelector('strong');
+      if (!strong) return;
+      let nameSize = 12 * scale;
+      strong.style.fontSize = nameSize.toFixed(1) + 'px';
+      while (nameSize > 6 && strong.scrollWidth > boxWidth) {
+        nameSize -= 0.5;
+        strong.style.fontSize = nameSize.toFixed(1) + 'px';
+      }
+    }
+
+    // Shrinks font-size until the text fits the box's actual rendered
+    // width instead of being cut off by the box's `overflow: hidden` (the
+    // old ellipsis-truncation behavior hid part of the answer instead of
+    // showing all of it). Falls back to the CSS ellipsis only in the rare
+    // case the text still doesn't fit at the minimum readable size.
+    function fitTextToBox(el, text, { min = 7, max = 12 } = {}) {
+      el.textContent = text;
+      const boxWidth = el.clientWidth;
+      if (!boxWidth) return;
+      let size = max;
+      el.style.fontSize = size + 'px';
+      while (size > min && el.scrollWidth > boxWidth) {
+        size -= 1;
+        el.style.fontSize = size + 'px';
+      }
     }
 
     function updatePreviewField(field) {
@@ -999,13 +1044,14 @@
       if (field.field_type === 'signature' || field.field_type === 'initials') {
         applySignatureMark(preview, value);
       } else {
-        // Long answers still get the full readback in the fill-form panel;
-        // the on-page chip truncates with an ellipsis (plus a title tooltip)
-        // instead of wrapping, which is what made short/tall placed field
-        // boxes look like they were overflowing into neighboring fields.
+        // Long answers still get the full readback in the fill-form panel.
+        // The on-page chip used to truncate with an ellipsis instead of
+        // showing the whole value — fitTextToBox shrinks the font instead,
+        // so the full answer is always visible regardless of how narrow or
+        // wide the sender drew this field's box.
         if (field.field_type === 'textarea') preview.classList.add('multiline-preview');
-        preview.textContent = value;
         preview.title = value;
+        fitTextToBox(preview, value);
       }
     }
 
