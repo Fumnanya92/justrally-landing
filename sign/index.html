@@ -191,12 +191,27 @@
          keyboard, so without this the bottom of the panel (and whatever
          field is focused there) ends up hidden behind the keyboard. */
       top: var(--vv-offset-top, 0px); height: var(--vv-height, 100vh);
+      /* Without this, content that doesn't fit the panel's fixed height
+         (see min-height:0 below for why that happened) renders past its
+         own rounded-corner bounds instead of being contained by them —
+         that's what let the footer's buttons visually spill into/over the
+         consent checkbox and the keyboard's own suggestion bar. */
+      overflow: hidden;
     }
-    .fill-form-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 26px 24px 20px; border-bottom: 1px solid var(--border); background: linear-gradient(135deg, rgba(0,6,102,.08), transparent 62%); }
+    .fill-form-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 26px 24px 20px; border-bottom: 1px solid var(--border); background: linear-gradient(135deg, rgba(0,6,102,.08), transparent 62%); flex-shrink: 0; }
     .fill-form-eyebrow { color: var(--accent); font-size: 11px; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; margin-bottom: 7px; }
     .fill-form-header h2 { font-size: 25px; letter-spacing: -.04em; line-height: 1.05; margin-bottom: 8px; }
     .fill-form-header .sub { max-width: 310px; line-height: 1.4; }
-    .fill-form-fields { flex: 1; overflow-y: auto; padding: 22px 24px 28px; background: color-mix(in srgb, var(--bg) 64%, var(--surface)); }
+    .fill-form-fields {
+      flex: 1; overflow-y: auto; padding: 22px 24px 28px; background: color-mix(in srgb, var(--bg) 64%, var(--surface));
+      /* A flex item's default min-height is `auto` (its content's natural
+         height), which stops it shrinking below that even with flex:1 —
+         so once header + footer + this area's own content needed more
+         room than the keyboard-shrunk panel had, this couldn't give up
+         the space it was supposed to, and the whole column overflowed the
+         panel instead of this area simply scrolling. */
+      min-height: 0;
+    }
     .form-page-group + .form-page-group { margin-top: 24px; }
     .form-page-label { display: flex; align-items: center; gap: 8px; margin: 0 0 10px 2px; color: var(--muted); font-size: 12px; font-weight: 700; }
     .form-page-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
@@ -217,9 +232,18 @@
     .panel-field.error input, .panel-field.error textarea, .panel-field.error select { border-color: var(--danger-text); }
     .panel-sign-button { display: flex; width: 100%; justify-content: space-between; align-items: center; padding: 15px 14px; border: 1px solid var(--accent); border-radius: 10px; background: linear-gradient(135deg, rgba(0,6,102,.06), var(--surface)); color: var(--accent); font: 700 14px/1.2 Inter, system-ui, sans-serif; cursor: pointer; }
     .panel-sign-button.is-signed { color: var(--success-text); border-color: var(--success-text); background: var(--success-bg); }
-    .fill-form-footer { padding: 16px 24px calc(20px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--border); background: var(--surface); }
+    .fill-form-footer { padding: 16px 24px calc(20px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--border); background: var(--surface); flex-shrink: 0; }
     .fill-form-footer .btn { margin-bottom: 10px; }
     .fill-form-footer-note { color: var(--muted); font-size: 11px; line-height: 1.4; margin: 10px 2px 0; text-align: center; }
+    /* While the on-screen keyboard is up (see syncViewportInsets), the
+       footer's consent paragraph and three buttons — and the header's
+       eyebrow/subtitle — aren't reachable or needed yet; the recipient is
+       still typing. Give that space to the actual field instead. Both
+       come back the instant the keyboard closes. */
+    .fill-form-panel.kb-open .fill-form-footer { display: none; }
+    .fill-form-panel.kb-open .fill-form-eyebrow,
+    .fill-form-panel.kb-open .fill-form-header .sub { display: none; }
+    .fill-form-panel.kb-open .fill-form-header { padding-top: 14px; padding-bottom: 12px; }
     @media (max-width: 560px) {
       .fill-form-fab { right: 16px; bottom: 16px; padding: 14px 16px; }
       .fill-form-panel {
@@ -514,6 +538,21 @@
       // sized to fit and left overlapping the covered area.
       const kbInset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
       root.setProperty('--kb-inset', kbInset + 'px');
+      // The fill-form drawer's footer (consent paragraph + Review/Decline/
+      // Back buttons) and header (eyebrow + subtitle) are sized for the
+      // FULL viewport. Once the keyboard covers a large chunk of a small
+      // phone screen (worse still inside an in-app browser like Gmail's,
+      // which already reserves its own chrome at the top), there isn't
+      // enough room left for header + footer + even one field, and the
+      // flex column overflows its own fixed-height card — which is what
+      // made the footer's buttons visually collide with the consent
+      // checkbox and the keyboard's own autofill bar. Collapse the footer
+      // and header's non-essential lines while the keyboard is up, so the
+      // field the recipient is actually typing into gets the space
+      // instead; syncViewportInsets re-fires on keyboard dismiss too, so
+      // this reverses itself automatically.
+      const panel = document.getElementById('fill-form-panel');
+      if (panel) panel.classList.toggle('kb-open', kbInset > 80);
     }
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', syncViewportInsets);
