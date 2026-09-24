@@ -79,11 +79,16 @@
     .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
     .field label .req { color: var(--danger-text); }
     .field .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    /* iOS Safari auto-zooms the whole page on focus for any text input
+       under 16px, fighting the visualViewport-tracked fixed panels above —
+       that's what made the fill-form drawer feel like it was jumping
+       around and hiding what was just typed. 16px is the floor here and
+       on every other typed input on this page (panel-field, sig-rally). */
     .field input[type=text], .field input[type=email], .field input[type=tel],
     .field input[type=number], .field input[type=date], .field textarea, .field select {
       width: 100%; padding: 12px 14px; border-radius: 10px;
       border: 1px solid var(--border); background: var(--bg); color: var(--text);
-      font-family: inherit; font-size: 15px;
+      font-family: inherit; font-size: 16px;
     }
     .field textarea { min-height: 80px; resize: vertical; }
     .field.error input, .field.error textarea, .field.error select { border-color: var(--danger-text); }
@@ -191,7 +196,7 @@
     .panel-field > label { display: block; font-size: 14px; font-weight: 700; margin-bottom: 8px; }
     .panel-field input[type=text], .panel-field input[type=email], .panel-field input[type=tel], .panel-field input[type=number], .panel-field input[type=date], .panel-field textarea, .panel-field select {
       display: block; width: 100%; min-height: 46px; padding: 12px 13px; border: 1px solid var(--border);
-      border-radius: 9px; background: var(--surface); color: var(--text); font: 15px/1.2 'Inter', system-ui, sans-serif;
+      border-radius: 9px; background: var(--surface); color: var(--text); font: 16px/1.2 'Inter', system-ui, sans-serif;
     }
     .panel-field textarea { min-height: 104px; resize: vertical; }
     .panel-field input:focus, .panel-field textarea:focus, .panel-field select:focus { outline: 3px solid rgba(0,6,102,.14); border-color: var(--accent); }
@@ -236,7 +241,7 @@
     .sig-typed input { width: 100%; padding: 14px; font-size: 24px; font-family: 'Brush Script MT', cursive, 'Inter'; border: 1px solid var(--border); border-radius: 10px; background: var(--bg); color: var(--text); }
     .sig-rally { border: 1px solid var(--border); border-radius: 10px; background: #fff; padding: 12px; }
     .sig-rally label { display: block; font-size: 12px; font-weight: 700; color: var(--text); margin: 0 0 7px; }
-    .sig-rally input { width: 100%; padding: 11px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font: 15px/1.2 Inter, system-ui, sans-serif; margin-bottom: 10px; }
+    .sig-rally input { width: 100%; padding: 11px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text); font: 16px/1.2 Inter, system-ui, sans-serif; margin-bottom: 10px; }
     .sig-rally input:focus { outline: 3px solid rgba(0,6,102,.14); border-color: var(--accent); }
     .sig-rally canvas { display: block; width: 100%; height: auto; }
     .sig-rally-hint { font-size: 11px; color: var(--muted); margin-top: 8px; }
@@ -273,6 +278,9 @@
       cursor: pointer; text-decoration: none;
       display: block; width: 100%; margin-top: 10px;
     }
+
+    .app-promo { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); text-align: left; }
+    .app-promo .btn-outline { text-align: center; }
 
     .banner { border-radius: 12px; padding: 12px 14px; font-size: 13px; margin: 16px 0; line-height: 1.5; }
     .banner-muted { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
@@ -331,6 +339,11 @@
       <h1>You're done</h1>
       <p class="sub" id="completion-message" style="margin-top:8px;">Your entries were submitted successfully.</p>
       <button class="btn-outline" id="retry-finalization-btn" type="button" hidden>Retry final document</button>
+      <a class="btn" id="view-completed-doc-link" href="#" target="_blank" rel="noopener" style="margin-top:16px;" hidden>View your signed document</a>
+      <div class="app-promo">
+        <p class="sub">Get the Rally app to keep every document you've signed — and who you signed it with — in one place.</p>
+        <a class="btn-outline" href="/open/" target="_blank" rel="noopener">Get Rally for iOS or Android</a>
+      </div>
       <p class="sub" style="margin-top:16px;">You can safely close this page.</p>
     </div>
 
@@ -1020,11 +1033,21 @@
     // old ellipsis-truncation behavior hid part of the answer instead of
     // showing all of it). Falls back to the CSS ellipsis only in the rare
     // case the text still doesn't fit at the minimum readable size.
-    function fitTextToBox(el, text, { min = 7, max = 12 } = {}) {
+    function fitTextToBox(el, text, { min = 6, max = 12 } = {}) {
       el.textContent = text;
       const boxWidth = el.clientWidth;
+      const boxHeight = el.clientHeight;
       if (!boxWidth) return;
-      let size = max;
+      // A box placed on a tightly-spaced line (e.g. a signature block
+      // where each field is only a line apart) can be shorter than the
+      // starting 12px font itself — sizing purely to fit the WIDTH left
+      // the text tall enough to spill into the next field below, which is
+      // what actually made adjacent answers look like they were on top of
+      // each other even after their boxes stopped geometrically
+      // overlapping. Cap the starting size to the box's own height too.
+      let size = boxHeight
+        ? Math.min(max, Math.max(min, Math.floor(boxHeight * 0.82)))
+        : max;
       el.style.fontSize = size + 'px';
       while (size > min && el.scrollWidth > boxWidth) {
         size -= 1;
@@ -1218,9 +1241,10 @@
       refreshPdfPreview();
     }
 
-    function showCompletion(processingStatus, processingError) {
+    function showCompletion(processingStatus, processingError, completedDocumentUrl) {
       const message = document.getElementById('completion-message');
       const retry = document.getElementById('retry-finalization-btn');
+      const viewLink = document.getElementById('view-completed-doc-link');
       if (processingStatus === 'failed') {
         message.textContent = 'Your signature is saved, but the final PDF could not be generated yet. You can retry safely.';
         retry.hidden = false;
@@ -1231,6 +1255,17 @@
       } else {
         message.textContent = 'Your entries were submitted successfully.';
         retry.hidden = true;
+      }
+      // The recipient just handed over a real signature — leaving them with
+      // nothing but "you can close this page" is why they never actually
+      // saw what they signed. Link straight to the finished artifact when
+      // it exists yet (it might not, if another recipient still owes
+      // theirs); the Rally app promotion below covers the rest either way.
+      if (completedDocumentUrl) {
+        viewLink.href = completedDocumentUrl;
+        viewLink.hidden = false;
+      } else {
+        viewLink.hidden = true;
       }
       show('completed-view');
     }
@@ -1263,7 +1298,7 @@
       if (!ok) { show('invalid'); return; }
       session = data;
 
-      if (session.status === 'completed') { showCompletion(session.processingStatus, session.processingError); return; }
+      if (session.status === 'completed') { showCompletion(session.processingStatus, session.processingError, session.completedDocumentUrl); return; }
       if (session.status === 'declined') { show('declined-view'); return; }
 
       if (session.isWitness) {
@@ -1324,7 +1359,7 @@
       if (!ok) { alert('Something went wrong submitting your document. Please try again.'); return; }
       document.getElementById('review-modal-overlay').hidden = true;
       pendingSubmission = null;
-      showCompletion(data.processingStatus, data.processingError);
+      showCompletion(data.processingStatus, data.processingError, data.completedDocumentUrl);
     });
 
     document.getElementById('retry-finalization-btn').addEventListener('click', async () => {
@@ -1335,7 +1370,7 @@
       button.disabled = false;
       button.textContent = 'Retry final document';
       if (!ok) { alert('The retry could not be started. Please try again.'); return; }
-      showCompletion(data.processingStatus, data.processingError);
+      showCompletion(data.processingStatus, data.processingError, data.completedDocumentUrl);
     });
 
     document.getElementById('decline-btn').addEventListener('click', async () => {
