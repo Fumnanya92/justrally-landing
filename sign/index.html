@@ -1003,6 +1003,19 @@
         const fullName = meta.fullName || sig.typedText || sig.typed_text || '';
         const dateLabel = sig.dateLabel || meta.date || new Date(meta.signedAt || (session && session.serverTime) || Date.now())
           .toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' }).replace(',', '');
+        // Below this height, three stacked lines (checkmark label, name,
+        // date) can't stay legible without running into whatever field
+        // sits right above or below this one — no amount of further
+        // shrinking fixes that, because three lines of ANY readable size
+        // still take more vertical room than the box has. Collapse to one
+        // compact line instead, the same convention every other filled-in
+        // answer on the page already uses. This is evaluated from the
+        // box's own real height every time it renders, for every
+        // document, not just the one this was found on.
+        if (el.clientHeight && el.clientHeight < 24) {
+          fitTextToBox(el, `✓ ${fullName} · ${dateLabel}`, { min: 6, max: 11 });
+          return;
+        }
         el.classList.add('rally-preview');
         el.innerHTML = `<span>✓ RALLY SIGNED</span><strong>${escapeHtml(fullName)}</strong><span>${escapeHtml(dateLabel)}</span>`;
         fitRallyStampToBox(el);
