@@ -1058,6 +1058,17 @@
     // case the text still doesn't fit at the minimum readable size.
     function fitTextToBox(el, text, { min = 6, max = 12 } = {}) {
       el.textContent = text;
+      // A signature chip carries the `signature-preview` class, whose CSS
+      // sets `white-space: pre-line` so a drawn/uploaded image's own
+      // caption can wrap. That same rule silently applied to the compact
+      // rally-stamp fallback below, which needs the opposite: as ONE
+      // nowrap line, this measures and shrinks correctly; allowed to wrap,
+      // the box's fixed (often very short) height clips every wrapped line
+      // except the last one — which is exactly why "✓ David Omet · 23 Sep
+      // 2026" was rendering as just "23 Sep 2026", the signer's own name
+      // silently gone. Force nowrap here, inline, so it always wins
+      // regardless of what class the caller already added.
+      el.style.whiteSpace = 'nowrap';
       const boxWidth = el.clientWidth;
       const boxHeight = el.clientHeight;
       if (!boxWidth) return;
@@ -1075,6 +1086,17 @@
       while (size > min && el.scrollWidth > boxWidth) {
         size -= 1;
         el.style.fontSize = size + 'px';
+      }
+      // Even at the minimum readable size, an unusually long answer (or a
+      // very narrow box) can still be wider than the box. The CSS default
+      // for this chip is to hide and ellipsis whatever doesn't fit —
+      // acceptable for an ordinary answer, but a signature must never be
+      // silently cut off. Let it spill past the box's own edge instead of
+      // hiding any of it; overlapping a neighbor visually is preferable to
+      // making the signed name disappear.
+      if (el.scrollWidth > boxWidth) {
+        el.style.overflow = 'visible';
+        el.style.textOverflow = 'clip';
       }
     }
 
